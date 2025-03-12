@@ -1,0 +1,27 @@
+{
+    "server": {
+        "ip": "127.0.0.1",
+        "port": 8080
+    },
+    "accounts": [
+        {
+            "username": "admin",
+            "password": "12345678",
+            "permissions": [
+                "home",
+                "zone",
+                "monitor"
+            ]
+        }
+    ],
+    "zones": [
+        {
+            "name": "nha1",
+            "mode": "avg",
+            "monitors": [
+                "may1"
+            ],
+            "people_count": 0
+        }
+    ]
+}
