@@ -14,69 +14,10 @@ from kivy.clock import Clock
 from kivy.graphics.texture import Texture
 from kivy.properties import NumericProperty, StringProperty
 import torch
-import requests
 import time
-import base64
 import json
-import os
-
-class ServerConnector:
-    def __init__(self, server_url, key, name):
-        self.server_url = server_url
-        self.key = key
-        self.name = name
-        self.connected = False
-        self.latency = None
-        self.request_count = 0  # Khởi tạo biến đếm request
-
-    def connect(self):
-        data = {'key': self.key, 'name': self.name}
-        try:
-            start_time = time.time()
-            response = requests.post(f"{self.server_url}/connect", json=data, verify=True)
-            self.latency = (time.time() - start_time) * 1000
-            if response.status_code == 200:
-                self.connected = True
-                print("Kết nối thành công!")
-                return True
-            print("Kết nối thất bại!")
-            return False
-        except Exception as e:
-            print(f"Lỗi kết nối: {e}")
-            return False
-
-    def send_people_count(self, people_count, frame=None):
-        if not self.connected:
-            print("Chưa kết nối, không thể gửi dữ liệu!")
-            return False
-        data = {'key': self.key, 'name': self.name, 'people_count': people_count}
-        self.request_count += 1  # Tăng biến đếm mỗi lần gọi
-        if self.request_count % 10 == 0 and frame is not None:
-            success, encoded_image = cv2.imencode('.png', frame)
-            if success:
-                image_base64 = base64.b64encode(encoded_image).decode('utf-8')
-                data['image'] = image_base64  # Thêm ảnh vào data
-        try:
-            headers = {"Content-Type": "application/json"}
-            response = requests.post(f"{self.server_url}/update_count", json=data, headers=headers, verify=True)
-            if response.status_code == 200:
-                try:
-                    resp_data = response.json()
-                    if resp_data.get("action") == "Reset Counter" and hasattr(self, 'app'):
-                        # Reset people_count về 0
-                        from kivy.clock import Clock
-                        Clock.schedule_once(lambda dt: setattr(self.app, 'people_count', 0))
-                except Exception as e:
-                    print("Lỗi xử lý phản hồi JSON:", e)
-                return True
-            print(f"Lỗi gửi dữ liệu: {response.status_code} - {response.text}")
-            return False
-        except Exception as e:
-            self.connected = False
-            print(f"Lỗi khi gửi dữ liệu: {e}")
-            return False
-
-
+import os,sys
+from server_connector import ServerConnector
 
 # Biến toàn cục
 boundary_line = []
@@ -99,7 +40,7 @@ if os.path.exists('login.json'):
         print(f"Lỗi đọc file cấu hình: {e}")
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = YOLO("yolo11s.pt").to(device)
+model = YOLO("yolo11s.pt",verbose=False).to(device)
 
 # Popup đăng nhập
 class LoginPopup(Popup):
@@ -250,7 +191,7 @@ class PeopleCounterApp(App):
     
         server_url = f"http://{config['ip']}:{config['port']}"
         self.connector = ServerConnector(server_url, config['key'], config['name'])
-        self.connector.app = self  # Gán tham chiếu đến app
+        self.connector.app = self  
     
         if self.connector.connect():
             self.connection_status = f"Connected (Latency: {self.connector.latency:.2f} ms)"
@@ -304,8 +245,8 @@ def process_video(source, app):
         if not ret:
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
-
-        results = model.track(frame, persist=True, tracker="bytetrack.yaml")
+        
+        results = model.track(frame, persist=True, tracker="bytetrack.yaml",verbose=False)
         if results and results[0].boxes:
             boxes = results[0].boxes.xyxy.cpu().numpy()
             track_ids = results[0].boxes.id

@@ -4,7 +4,7 @@ from settings import SettingsManager
 from monitor import MonitorManager
 from flask_server import FlaskServer
 from gui import LoginDialog, AccountCreationDialog, MainWindow
-from PySide6.QtWidgets import QApplication, QDialog  # Thêm import này
+from PySide6.QtWidgets import QApplication, QDialog  
 
 def main():
     settings_manager = SettingsManager()

@@ -180,10 +180,18 @@ class HomePage(QWidget):
         layout.addWidget(self.account_list)
         btn_layout = QHBoxLayout()
         self.edit_account_btn = QPushButton("Edit Account")
+        self.create_account_btn = QPushButton("Create Account")
         btn_layout.addWidget(self.edit_account_btn)
+        btn_layout.addWidget(self.create_account_btn)
         layout.addLayout(btn_layout)
         self.save_server_btn.clicked.connect(self.save_server)
         self.edit_account_btn.clicked.connect(self.edit_account)
+        self.create_account_btn.clicked.connect(self.create_account)
+
+    def create_account(self):
+        dialog = AccountCreationDialog(self.settings_manager)
+        if dialog.exec() == QDialog.Accepted:
+            self.refresh_accounts()
 
     def refresh_accounts(self):
         self.account_list.clear()

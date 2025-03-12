@@ -55,7 +55,7 @@ class FlaskServer:
                     self.tokens[token] = {
                         "username": username,
                         "permissions": account.get("permissions", []),
-                        "expiry": time.time() + 28800  # 8 giờ
+                        "expiry": time.time() + 28800 
                     }
                     return jsonify({"status": "OK", "token": token}), 200
             return jsonify({"status": "ERROR", "message": "Invalid credentials"}), 401
@@ -132,7 +132,6 @@ class FlaskServer:
                 if not data:
                     return jsonify({"status": "ERROR", "message": "Invalid data"}), 400
                 if data_type == 'monitors':
-                    # Kiểm tra nếu action là "reset"
                     if data.get("action") == "reset":
                         key = data.get("key")
                         name = data.get("name")
@@ -140,7 +139,7 @@ class FlaskServer:
                             return jsonify({"status": "ERROR", "message": "Missing key or name"}), 400
                         client_id = f"{key}_{name}"
                         if client_id in connected_clients:
-                            connected_clients[client_id]["people_count"] = 0  # Reset people_count về 0
+                            connected_clients[client_id]["people_count"] = 0 
                             connected_clients[client_id]["reset_counter"] = True
                             return jsonify({"status": "OK", "message": "People counter reset"}), 200
                         else:

@@ -12,12 +12,19 @@
                 "zone",
                 "monitor"
             ]
+        },
+        {
+            "username": "user1",
+            "password": "12345678",
+            "permissions": [
+                "zone"
+            ]
         }
     ],
     "zones": [
         {
             "name": "nha1",
-            "mode": "avg",
+            "mode": "max",
             "monitors": [
                 "may1"
             ],
