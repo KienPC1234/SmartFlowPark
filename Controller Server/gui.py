@@ -8,7 +8,6 @@ import numpy as np
 import time
 from random_generator import RandomGenerator
 from flask_server import connected_clients
-import json
 
 class LoginDialog(QDialog):
     def __init__(self, settings_manager):
@@ -39,7 +38,7 @@ class LoginDialog(QDialog):
     def login(self):
         username = self.username_input.text().strip()
         password = self.password_input.text().strip()
-        for account in self.settings_manager.data["accounts"]:
+        for account in self.settings_manager.get_all_accounts():
             if account["username"] == username and account["password"] == password:
                 self.user_account = account
                 self.accept()
@@ -104,11 +103,10 @@ class AccountCreationDialog(QDialog):
         self.accept()
 
 class AccountEditDialog(QDialog):
-    def __init__(self, settings_manager, account, index):
+    def __init__(self, settings_manager, account):
         super().__init__()
         self.settings_manager = settings_manager
         self.account = account
-        self.index = index
         self.setWindowTitle("Chỉnh sửa tài khoản")
         self.setup_ui()
 
@@ -123,7 +121,7 @@ class AccountEditDialog(QDialog):
         self.chk_home = QCheckBox("Trang chủ")
         self.chk_zone = QCheckBox("Quản lý khu vực")
         self.chk_monitor = QCheckBox("Quản lý máy giám sát")
-        permissions = self.account.get("permissions", [])
+        permissions = self.account.get("permissions", []) 
         self.chk_home.setChecked("home" in permissions)
         self.chk_zone.setChecked("zone" in permissions)
         self.chk_monitor.setChecked("monitor" in permissions)
@@ -143,15 +141,15 @@ class AccountEditDialog(QDialog):
         new_password = self.password_input.text().strip()
         if new_password:
             self.account["password"] = new_password
-        new_permissions = []
+        permissions = []
         if self.chk_home.isChecked():
-            new_permissions.append("home")
+            permissions.append("home")
         if self.chk_zone.isChecked():
-            new_permissions.append("zone")
+            permissions.append("zone")
         if self.chk_monitor.isChecked():
-            new_permissions.append("monitor")
-        self.account["permissions"] = new_permissions
-        self.settings_manager.update_account(self.index, self.account)
+            permissions.append("monitor")
+        self.account["permissions"] = permissions
+        self.settings_manager.update_account(self.account["id"], self.account)
         self.accept()
 
 class HomePage(QWidget):
@@ -164,11 +162,12 @@ class HomePage(QWidget):
         layout = QVBoxLayout(self)
         ip_layout = QHBoxLayout()
         ip_layout.addWidget(QLabel("IP:"))
-        self.ip_input = QLineEdit(self.settings_manager.data["server"]["ip"])
+        server_settings = self.settings_manager.get_server_settings()
+        self.ip_input = QLineEdit(server_settings["ip"])
         ip_layout.addWidget(self.ip_input)
         port_layout = QHBoxLayout()
         port_layout.addWidget(QLabel("Port:"))
-        self.port_input = QLineEdit(str(self.settings_manager.data["server"]["port"]))
+        self.port_input = QLineEdit(str(server_settings["port"]))
         port_layout.addWidget(self.port_input)
         layout.addLayout(ip_layout)
         layout.addLayout(port_layout)
@@ -181,12 +180,48 @@ class HomePage(QWidget):
         btn_layout = QHBoxLayout()
         self.edit_account_btn = QPushButton("Edit Account")
         self.create_account_btn = QPushButton("Create Account")
+        self.refresh_btn = QPushButton("Refresh")  
+        self.delete_btn = QPushButton("Delete")    
         btn_layout.addWidget(self.edit_account_btn)
         btn_layout.addWidget(self.create_account_btn)
+        btn_layout.addWidget(self.refresh_btn)
+        btn_layout.addWidget(self.delete_btn)
         layout.addLayout(btn_layout)
         self.save_server_btn.clicked.connect(self.save_server)
         self.edit_account_btn.clicked.connect(self.edit_account)
         self.create_account_btn.clicked.connect(self.create_account)
+        self.refresh_btn.clicked.connect(self.refresh_accounts)  
+        self.delete_btn.clicked.connect(self.delete_selected_account)  
+
+    def refresh_accounts(self):
+        self.account_list.clear()
+        for account in self.settings_manager.get_all_accounts():
+            self.account_list.addItem(account["username"])
+
+    def delete_selected_account(self):
+        selected = self.account_list.currentRow()
+        if selected < 0:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một tài khoản để xóa.")
+            return
+        account = self.settings_manager.get_all_accounts()[selected]
+        account_id = account["id"]
+        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa tài khoản này?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            try:
+                import sqlite3
+                conn = sqlite3.connect(self.settings_manager.db_name)
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM accounts WHERE id = ?', (account_id,))
+                if cursor.rowcount == 0:
+                    QMessageBox.warning(self, "Lỗi", "Tài khoản không tồn tại.")
+                else:
+                    conn.commit()
+                    QMessageBox.information(self, "Thành công", "Tài khoản đã được xóa.")
+                    self.refresh_accounts()
+                conn.close()
+            except sqlite3.Error as e:
+                QMessageBox.warning(self, "Lỗi", f"Không thể xóa tài khoản: {str(e)}")
 
     def create_account(self):
         dialog = AccountCreationDialog(self.settings_manager)
@@ -195,21 +230,21 @@ class HomePage(QWidget):
 
     def refresh_accounts(self):
         self.account_list.clear()
-        for account in self.settings_manager.data["accounts"]:
+        for account in self.settings_manager.get_all_accounts():
             self.account_list.addItem(account["username"])
 
     def save_server(self):
-        self.settings_manager.data["server"]["ip"] = self.ip_input.text().strip()
-        self.settings_manager.data["server"]["port"] = int(self.port_input.text().strip())
-        self.settings_manager.save()
+        ip = self.ip_input.text().strip()
+        port = int(self.port_input.text().strip())
+        self.settings_manager.update_server_settings(ip, port)
         QMessageBox.information(self, "Thông báo", "Server đã được lưu!")
 
     def edit_account(self):
         selected = self.account_list.currentRow()
         if selected < 0:
             return
-        account = self.settings_manager.data["accounts"][selected]
-        dialog = AccountEditDialog(self.settings_manager, account, selected)
+        account = self.settings_manager.get_all_accounts()[selected]
+        dialog = AccountEditDialog(self.settings_manager, account)
         if dialog.exec() == QDialog.Accepted:
             self.refresh_accounts()
 
@@ -234,7 +269,7 @@ class ZoneDialog(QDialog):
         layout.addWidget(self.mode_combo)
         layout.addWidget(QLabel("Chọn máy giám sát:"))
         self.monitor_list = QListWidget()
-        for monitor in self.monitor_manager.data.get("monitors", []):
+        for monitor in self.monitor_manager.get_all_monitors():
             item = QListWidgetItem(monitor["name"])
             item.setFlags(item.flags() | Qt.ItemIsUserCheckable)
             item.setCheckState(Qt.Checked if self.zone and monitor["name"] in self.zone.get("monitors", []) else Qt.Unchecked)
@@ -276,16 +311,47 @@ class ZoneManagementTab(QWidget):
         btn_layout = QHBoxLayout()
         self.create_zone_btn = QPushButton("Tạo khu vực")
         self.edit_zone_btn = QPushButton("Edit")
+        self.refresh_btn = QPushButton("Refresh")  
+        self.delete_btn = QPushButton("Delete")   
         btn_layout.addWidget(self.create_zone_btn)
         btn_layout.addWidget(self.edit_zone_btn)
+        btn_layout.addWidget(self.refresh_btn)
+        btn_layout.addWidget(self.delete_btn)
         layout.addLayout(btn_layout)
         self.create_zone_btn.clicked.connect(self.create_zone)
         self.edit_zone_btn.clicked.connect(self.edit_zone)
+        self.refresh_btn.clicked.connect(self.refresh_zones) 
+        self.delete_btn.clicked.connect(self.delete_selected_zone)  
 
     def refresh_zones(self):
         self.zone_list.clear()
-        for zone in self.settings_manager.data["zones"]:
+        for zone in self.settings_manager.get_all_zones():
             self.zone_list.addItem(f"{zone['name']} - Mode: {zone.get('mode', 'max')}, People: {zone.get('people_count', 0)}")
+
+    def delete_selected_zone(self):
+        selected = self.zone_list.currentRow()
+        if selected < 0:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một khu vực để xóa.")
+            return
+        zone = self.settings_manager.get_all_zones()[selected]
+        zone_id = zone["id"]
+        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa khu vực này?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            try:
+                import sqlite3
+                conn = sqlite3.connect(self.settings_manager.db_name)
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM zones WHERE id = ?', (zone_id,))
+                if cursor.rowcount == 0:
+                    QMessageBox.warning(self, "Lỗi", "Khu vực không tồn tại.")
+                else:
+                    conn.commit()
+                    QMessageBox.information(self, "Thành công", "Khu vực đã được xóa.")
+                    self.refresh_zones()
+                conn.close()
+            except sqlite3.Error as e:
+                QMessageBox.warning(self, "Lỗi", f"Không thể xóa khu vực: {str(e)}")
 
     def create_zone(self):
         dialog = ZoneDialog(self.monitor_manager, parent=self)
@@ -297,18 +363,21 @@ class ZoneManagementTab(QWidget):
         index = self.zone_list.currentRow()
         if index < 0:
             return
-        dialog = ZoneDialog(self.monitor_manager, self.settings_manager.data["zones"][index], self)
+        zone = self.settings_manager.get_all_zones()[index]
+        dialog = ZoneDialog(self.monitor_manager, zone, self)
         if dialog.exec() == QDialog.Accepted:
-            self.settings_manager.update_zone(index, dialog.get_zone_data())
+            self.settings_manager.update_zone(zone["id"], dialog.get_zone_data())
             self.refresh_zones()
 
     def update_zones_people(self):
         THRESHOLD = 15.0
         now = time.time()
-        for zone in self.settings_manager.data["zones"]:
+        zones = self.settings_manager.get_all_zones()
+        monitors = self.monitor_manager.get_all_monitors()
+        for zone in zones:
             counts = []
             for mname in zone.get("monitors", []):
-                for monitor in self.monitor_manager.data.get("monitors", []):
+                for monitor in monitors:
                     if monitor["name"] == mname:
                         client_id = f"{monitor['key']}_{monitor['name']}"
                         client = connected_clients.get(client_id)
@@ -320,6 +389,7 @@ class ZoneManagementTab(QWidget):
                 min(counts) if counts and zone.get("mode") == "min" else
                 int(round(sum(counts) / len(counts))) if counts and zone.get("mode") == "avg" else 0
             )
+            self.settings_manager.update_zone(zone["id"], zone)
         self.refresh_zones()
 
 class AddMonitorDialog(QDialog):
@@ -360,22 +430,29 @@ class AddMonitorDialog(QDialog):
         if not name or not key:
             QMessageBox.warning(self, "Lỗi", "Nhập đầy đủ thông tin")
             return
-        self.monitor_manager.add_monitor({"name": name, "key": key, "image": "", "people_count": 0, "status": "ERROR", "delay": 0})
+        monitor = {
+            "name": name,
+            "key": key, 
+            "image": "",
+            "people_count": 0,
+            "status": "ERROR",
+            "delay": 0
+        }
+        self.monitor_manager.add_monitor(monitor)
         self.accept()
 
 class MonitorEditDialog(QDialog):
-    def __init__(self, monitor_manager, monitor, index):
+    def __init__(self, monitor_manager, monitor):
         super().__init__()
         self.monitor_manager = monitor_manager
         self.monitor = monitor
-        self.index = index
         self.setWindowTitle("Chỉnh sửa máy giám sát")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         self.name_input = QLineEdit(self.monitor.get("name", ""))
-        self.key_input = QLineEdit(self.monitor.get("key", ""))
+        self.key_input = QLineEdit(self.monitor.get("key", ""))  # Hiển thị key từ database
         layout.addWidget(QLabel("Tên máy giám sát:"))
         layout.addWidget(self.name_input)
         layout.addWidget(QLabel("Key:"))
@@ -396,8 +473,8 @@ class MonitorEditDialog(QDialog):
             QMessageBox.warning(self, "Lỗi", "Vui lòng nhập đầy đủ thông tin")
             return
         self.monitor["name"] = new_name
-        self.monitor["key"] = new_key
-        self.monitor_manager.update_monitor(self.index, self.monitor)
+        self.monitor["key"] = new_key  
+        self.monitor_manager.update_monitor(self.monitor["id"], self.monitor)
         self.accept()
 
 class MonitorManagementTab(QWidget):
@@ -417,18 +494,19 @@ class MonitorManagementTab(QWidget):
         left_layout.addWidget(QLabel("Danh sách máy giám sát:"))
         left_layout.addWidget(self.monitor_list)
 
-        # Thêm các nút vào layout
         btn_layout = QHBoxLayout()
         self.add_monitor_btn = QPushButton("Thêm máy giám sát")
-        self.import_monitor_btn = QPushButton("Import JSON")
         self.edit_monitor_btn = QPushButton("Edit Monitor")
-        self.reset_monitor_btn = QPushButton("Reset Counter")  # Thêm nút Reset
+        self.reset_monitor_btn = QPushButton("Reset Counter")
         self.reload_btn = QPushButton("Tải lại")
+        self.refresh_btn = QPushButton("Refresh")  # Thêm nút Refresh
+        self.delete_btn = QPushButton("Delete")    # Thêm nút Delete
         btn_layout.addWidget(self.add_monitor_btn)
-        btn_layout.addWidget(self.import_monitor_btn)
         btn_layout.addWidget(self.edit_monitor_btn)
-        btn_layout.addWidget(self.reset_monitor_btn)  # Thêm vào layout
+        btn_layout.addWidget(self.reset_monitor_btn)
         btn_layout.addWidget(self.reload_btn)
+        btn_layout.addWidget(self.refresh_btn)
+        btn_layout.addWidget(self.delete_btn)
         left_layout.addLayout(btn_layout)
 
         right_layout = QVBoxLayout()
@@ -442,20 +520,50 @@ class MonitorManagementTab(QWidget):
         main_layout.addLayout(left_layout, 2)
         main_layout.addLayout(right_layout, 3)
 
-        # Kết nối sự kiện
         self.monitor_list.itemClicked.connect(self.show_monitor_detail)
         self.add_monitor_btn.clicked.connect(self.add_monitor)
-        self.import_monitor_btn.clicked.connect(self.import_monitors)
         self.edit_monitor_btn.clicked.connect(self.edit_monitor)
-        self.reset_monitor_btn.clicked.connect(self.reset_monitor)  # Kết nối sự kiện Reset
+        self.reset_monitor_btn.clicked.connect(self.reset_monitor)
         self.reload_btn.clicked.connect(self.update_monitor_data)
+        self.refresh_btn.clicked.connect(self.refresh_monitors)  # Gắn sự kiện cho Refresh
+        self.delete_btn.clicked.connect(self.delete_selected_monitor)  # Gắn sự kiện cho Delete
+
+    def refresh_monitors(self):
+        self.monitor_list.clear()
+        for monitor in self.monitor_manager.get_all_monitors():
+            self.monitor_list.addItem(monitor["name"])
+
+    def delete_selected_monitor(self):
+        selected = self.monitor_list.currentRow()
+        if selected < 0:
+            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một máy giám sát để xóa.")
+            return
+        monitor = self.monitor_manager.get_all_monitors()[selected]
+        monitor_id = monitor["id"]
+        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa máy giám sát này?",
+                                     QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            try:
+                import sqlite3
+                conn = sqlite3.connect(self.monitor_manager.db_name)
+                cursor = conn.cursor()
+                cursor.execute('DELETE FROM monitors WHERE id = ?', (monitor_id,))
+                if cursor.rowcount == 0:
+                    QMessageBox.warning(self, "Lỗi", "Máy giám sát không tồn tại.")
+                else:
+                    conn.commit()
+                    QMessageBox.information(self, "Thành công", "Máy giám sát đã được xóa.")
+                    self.refresh_monitors()
+                conn.close()
+            except sqlite3.Error as e:
+                QMessageBox.warning(self, "Lỗi", f"Không thể xóa máy giám sát: {str(e)}")
 
     def reset_monitor(self):
         selected = self.monitor_list.currentRow()
         if selected < 0:
             QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một máy giám sát để reset.")
             return
-        monitor = self.monitor_manager.data["monitors"][selected]
+        monitor = self.monitor_manager.get_all_monitors()[selected]
         key = monitor.get("key")
         name = monitor.get("name")
         if not key or not name:
@@ -464,14 +572,15 @@ class MonitorManagementTab(QWidget):
         client_id = f"{key}_{name}"
         if client_id in connected_clients:
             connected_clients[client_id]["people_count"] = 0
-            connected_clients[client_id]["reset_counter"] = True  # Đặt flag để thông báo client
+            connected_clients[client_id]["reset_counter"] = True
             QMessageBox.information(self, "Thành công", "Đã reset đếm người.")
         else:
             QMessageBox.warning(self, "Lỗi", "Máy giám sát không được kết nối.")
+        self.refresh_monitors()
 
     def refresh_monitors(self):
         self.monitor_list.clear()
-        for monitor in self.monitor_manager.data["monitors"]:
+        for monitor in self.monitor_manager.get_all_monitors():
             self.monitor_list.addItem(monitor["name"])
 
     def add_monitor(self):
@@ -479,35 +588,24 @@ class MonitorManagementTab(QWidget):
         if dialog.exec() == QDialog.Accepted:
             self.refresh_monitors()
 
-    def import_monitors(self):
-        path, _ = QFileDialog.getOpenFileName(self, "Chọn file JSON", "", "JSON Files (*.json)")
-        if path:
-            try:
-                with open(path, "r") as f:
-                    data = json.load(f)
-                if "monitors" in data:
-                    self.monitor_manager.data = data
-                    self.monitor_manager.save()
-                    self.refresh_monitors()
-                else:
-                    QMessageBox.warning(self, "Lỗi", "File không hợp lệ")
-            except Exception as e:
-                QMessageBox.warning(self, "Lỗi", f"Lỗi khi đọc file: {e}")
-
     def show_monitor_detail(self, item):
         self.update_monitor_data()
 
     def update_monitor_data(self):
-        selected = self.monitor_list.currentRow()
-        if selected < 0:
-            self.detail_label.setText("Chi tiết máy giám sát:")
-            self.show_black_image()
+        selected = self.monitor_list.currentRow() 
+        monitors = self.monitor_manager.get_all_monitors() 
+
+        if selected < 0 or selected >= len(monitors):
+            self.detail_label.setText("Chi tiết máy giám sát: (Không có monitor nào được chọn hoặc monitor đã bị xóa)")
+            self.show_black_image()  
             return
-        monitor = self.monitor_manager.data["monitors"][selected]
-        client_id = f"{monitor.get('key','')}_{monitor.get('name','')}"
+
+        monitor = monitors[selected]
+        client_id = f"{monitor.get('key', '')}_{monitor.get('name', '')}"
         client = connected_clients.get(client_id)
         now = time.time()
         THRESHOLD = 15.0
+
         if client and (now - client.get("last_request", 0)) <= THRESHOLD:
             status = "OK"
             delay = client.get("delay", "-")
@@ -521,9 +619,10 @@ class MonitorManagementTab(QWidget):
             if client:
                 client["image"] = None
                 client["people_count"] = 0
+
         detail = (
             f"Name: {monitor['name']}\n"
-            f"Key: {monitor.get('key','')}\n"
+            f"Key: {monitor.get('key', '')}\n"
             f"People Count: {people_count}\n"
             f"Status: {status}\n"
             f"Delay: {delay} ms"
@@ -531,6 +630,7 @@ class MonitorManagementTab(QWidget):
         if image_b64:
             detail += "\n[Image available]"
         self.detail_label.setText(detail)
+
         if image_b64:
             try:
                 image_data = base64.b64decode(image_b64)
@@ -551,7 +651,6 @@ class MonitorManagementTab(QWidget):
                 self.show_black_image()
         else:
             self.show_black_image()
-
     def show_black_image(self):
         black = QPixmap(self.image_label.size())
         black.fill(Qt.black)
@@ -561,8 +660,8 @@ class MonitorManagementTab(QWidget):
         selected = self.monitor_list.currentRow()
         if selected < 0:
             return
-        monitor = self.monitor_manager.data["monitors"][selected]
-        dialog = MonitorEditDialog(self.monitor_manager, monitor, selected)
+        monitor = self.monitor_manager.get_all_monitors()[selected]
+        dialog = MonitorEditDialog(self.monitor_manager, monitor)
         if dialog.exec() == QDialog.Accepted:
             self.refresh_monitors()
 

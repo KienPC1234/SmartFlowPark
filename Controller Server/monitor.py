@@ -1,30 +1,92 @@
+import sqlite3
 import os
-import json
 
 class MonitorManager:
-    def __init__(self, filename="giamsat.json"):
-        self.filename = filename
-        self.data = {"monitors": []}
-        self.load()
+    def __init__(self, db_name="app_database.db"):
+        self.db_name = db_name
+        self._init_db()
 
-    def load(self):
-        if os.path.isfile(self.filename):
-            try:
-                with open(self.filename, "r") as f:
-                    self.data = json.load(f)
-            except Exception:
-                self.save()
-        else:
-            self.save()
-
-    def save(self):
-        with open(self.filename, "w") as f:
-            json.dump(self.data, f, indent=4)
+    def _init_db(self):
+        """Khởi tạo database và bảng monitors nếu chưa tồn tại"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS monitors (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                key TEXT NOT NULL,  
+                url TEXT DEFAULT '',
+                status TEXT DEFAULT 'ERROR',
+                zone_id INTEGER,
+                people_count INTEGER DEFAULT 0,
+                image TEXT DEFAULT '',
+                delay REAL DEFAULT 0
+            )
+        ''')
+        conn.commit()
+        conn.close()
 
     def add_monitor(self, monitor):
-        self.data["monitors"].append(monitor)
-        self.save()
+        """Thêm một monitor mới"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            INSERT INTO monitors (name, key, url, status, zone_id, people_count, image, delay) 
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (monitor.get('name', ''), 
+              monitor.get('key', ''), 
+              monitor.get('url', ''), 
+              monitor.get('status', 'active'),
+              monitor.get('zone_id', None),
+              monitor.get('people_count', 0),
+              monitor.get('image', ''),
+              monitor.get('delay', 0)))
+        conn.commit()
+        new_id = cursor.lastrowid
+        conn.close()
+        return new_id
 
-    def update_monitor(self, index, monitor):
-        self.data["monitors"][index] = monitor
-        self.save()
+    def update_monitor(self, monitor_id, monitor):
+        """Cập nhật thông tin monitor"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('''
+            UPDATE monitors 
+            SET name = ?, key = ?, url = ?, status = ?, zone_id = ?, people_count = ?, image = ?, delay = ?
+            WHERE id = ?
+        ''', (monitor.get('name', ''),
+              monitor.get('key', ''),  
+              monitor.get('url', ''),
+              monitor.get('status', 'active'),
+              monitor.get('zone_id', None),
+              monitor.get('people_count', 0),
+              monitor.get('image', ''),
+              monitor.get('delay', 0),
+              monitor_id))
+        conn.commit()
+        conn.close()
+
+    def get_all_monitors(self):
+        """Lấy tất cả monitors"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM monitors')
+        monitors = [{'id': row[0], 'name': row[1], 'key': row[2], 'url': row[3], 
+                    'status': row[4], 'zone_id': row[5], 'people_count': row[6], 
+                    'image': row[7], 'delay': row[8]} 
+                   for row in cursor.fetchall()]
+        conn.close()
+        return monitors
+
+    def get_monitor_by_id(self, monitor_id):
+        """Lấy monitor theo id"""
+        conn = sqlite3.connect(self.db_name)
+        cursor = conn.cursor()
+        cursor.execute('SELECT * FROM monitors WHERE id = ?', (monitor_id,))
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            return {'id': row[0], 'name': row[1], 'key': row[2], 'url': row[3], 
+                   'status': row[4], 'zone_id': row[5], 'people_count': row[6], 
+                   'image': row[7], 'delay': row[8]}
+        return None
