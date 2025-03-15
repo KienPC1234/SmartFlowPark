@@ -1,47 +1,67 @@
 import os
 import shutil
 import subprocess
-import compileall
+import logging
 
-# Thư mục chứa mã nguồn
-SOURCE_DIR = "Client"
+# Set up logging
+logging.basicConfig(level=logging.INFO, format='%(message)s')
 
-# Thư mục build
+SOURCE_DIRS = {
+    "Client": "Client/main.py",
+    "Monitoring Unit": "Monitoring Unit/main.py",
+}
+
 BUILD_DIR = "build"
-DIST_DIR = os.path.join(BUILD_DIR, "client")
-TEMP_DIR = os.path.join(BUILD_DIR, "temp")
-SPEC_DIR = os.path.join(BUILD_DIR, "spec")
 
-# 1️⃣ Mã hóa mã nguồn Python thành .pyc
-print("[+] Mã hóa mã nguồn bằng compileall...")
-compileall.compile_dir(SOURCE_DIR, force=True, quiet=1)
+NUITKA_PLUGINS = [
+    "pyside6",        
+    "multiprocessing",  
+    "pkg-resources",  
+]
 
-# Xóa file .py sau khi mã hóa
-for root, _, files in os.walk(SOURCE_DIR):
-    for file in files:
-        if file.endswith(".py") and file != "main.py":
-            os.remove(os.path.join(root, file))
+def create_build_dir():
+    try:
+        os.makedirs(BUILD_DIR, exist_ok=True)
+        logging.info(f"[+] Build directory created at: {BUILD_DIR}")
+    except Exception as e:
+        logging.error(f"[-] Error creating build directory: {e}")
 
-# 2️⃣ Build với PyInstaller
-print("[+] Đóng gói với PyInstaller...")
-subprocess.run([
-    "pyinstaller",
-    "--noconsole",
-    "--distpath", DIST_DIR,
-    "--workpath", TEMP_DIR,
-    "--specpath", SPEC_DIR,
-    os.path.join(SOURCE_DIR, "__pycache__", "main.cpython-*.pyc")
-], check=True)
+def build_app(app_name, main_file):
+    output_dir = os.path.join(BUILD_DIR, f"{app_name} App")
+    try:
+        os.makedirs(output_dir, exist_ok=True)
+        logging.info(f"[+] Output directory created at: {output_dir}")
+    except Exception as e:
+        logging.error(f"[-] Error creating output directory: {e}")
 
-# 3️⃣ Xóa thư mục tạm sau khi build thành công
-print("[+] Dọn dẹp file tạm...")
-shutil.rmtree(TEMP_DIR, ignore_errors=True)
-shutil.rmtree(SPEC_DIR, ignore_errors=True)
+    logging.info(f"[+] Building {app_name} with Nuitka...")
 
-# Xóa file thừa của PyInstaller (chỉ giữ lại dist/)
-for item in os.listdir(BUILD_DIR):
-    path = os.path.join(BUILD_DIR, item)
-    if item not in ["client"]:
-        shutil.rmtree(path, ignore_errors=True) if os.path.isdir(path) else os.remove(path)
+    cmd = [
+        "python", "-m", "nuitka",
+        "--standalone",
+        "--assume-yes-for-downloads",
+        "--remove-output",
+        f"--output-dir={output_dir}",
+    ]
 
-print("[✔] Build hoàn tất! File xuất ra tại:", DIST_DIR)
+    for plugin in NUITKA_PLUGINS:
+        cmd.append(f"--enable-plugin={plugin}")
+
+    cmd.append(main_file)
+
+    try:
+        subprocess.run(cmd, check=True)
+        logging.info(f"[+] {app_name} built successfully!")
+    except Exception as e:
+        logging.error(f"[-] Error building {app_name}: {e}")
+
+def main():
+    create_build_dir()
+
+    for app_name, main_file in SOURCE_DIRS.items():
+        build_app(app_name, main_file)
+
+    logging.info(f"[+] Build complete! Files output at: {BUILD_DIR}")
+
+if __name__ == "__main__":
+    main()
