@@ -22,16 +22,6 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install MSVC Build Tools
-        run: |
-          choco install visualstudio2022buildtools --force --params "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended --includeOptional"
-
-      - name: Add MSVC to PATH dynamically
-        run: |
-          $MSVC_PATH = (Get-ChildItem -Path "C:\Program Files\Microsoft Visual Studio\2022\BuildTools\VC\Tools\MSVC\" | Sort-Object LastWriteTime -Descending | Select-Object -First 1).FullName
-          echo "$MSVC_PATH\bin\Hostx64\x64" | Out-File -FilePath $env:GITHUB_PATH -Append
-        shell: pwsh
-
       - name: Increase Heap Size for MSVC
         run: |
           echo CL=/Zm8000 >> "%GITHUB_ENV%"
