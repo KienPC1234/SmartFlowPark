@@ -20,7 +20,7 @@ class LoginWindow(QWidget):
         layout.setSpacing(15)
 
         form_server = QFormLayout()
-        self.ip_edit = QLineEdit("127.0.0.1")
+        self.ip_edit = QLineEdit("http://127.0.0.1")
         self.ip_edit.setMinimumHeight(30)
         self.port_edit = QLineEdit("8080")
         self.port_edit.setMinimumHeight(30)
@@ -90,7 +90,7 @@ class LoginWindow(QWidget):
         if not self.ip_edit.isEnabled():
             settings, success = load_client_data(pin)
             if success:
-                self.failed_attempts = 0  # Reset số lần thử sai khi thành công
+                self.failed_attempts = 0  
                 api_client = ApiClient(settings)
                 try:
                     resp = api_client.login(settings.username, settings.password)

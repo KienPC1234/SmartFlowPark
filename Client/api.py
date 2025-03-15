@@ -5,7 +5,7 @@ import os, json
 class ApiClient:
     def __init__(self, settings):
         self.settings = settings
-        self.base_url = f"http://{settings.server_ip}:{settings.server_port}"
+        self.base_url = f"{settings.server_ip}:{settings.server_port}"
         self.headers = {"Authorization": settings.token}
 
     def login(self, username, password):

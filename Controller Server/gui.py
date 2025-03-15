@@ -6,7 +6,7 @@ import base64
 import cv2
 import numpy as np
 import time
-from random_generator import RandomGenerator
+from settings import RandomGenerator
 from flask_server import connected_clients
 
 class LoginDialog(QDialog):

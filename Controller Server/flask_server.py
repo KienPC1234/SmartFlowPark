@@ -1,7 +1,7 @@
 from flask import Flask, request, jsonify
 import time
 import secrets
-from random_generator import RandomGenerator
+from settings import RandomGenerator
 import sqlite3
 
 connected_clients = {}

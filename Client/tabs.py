@@ -6,12 +6,14 @@ from PySide6.QtWidgets import (
     QScrollArea, QFrame, QLabel, QMessageBox, QLineEdit, QHeaderView, QGridLayout, QMenu, QToolTip, QTextBrowser
 )
 from PySide6.QtCore import Qt, Signal, QTimer
+from shiboken6 import isValid 
 from PySide6.QtGui import QPixmap, QImage, QColor
 import requests
 import cv2
 import numpy as np
 from api import GoogleGenAI
 import markdown
+from functools import partial
 
 class AccountTab(QWidget):
     def __init__(self, settings, api_client, parent_tab_widget):
@@ -579,6 +581,118 @@ class ZoneTab(QWidget):
         except requests.RequestException as e:
             QMessageBox.warning(self, "Error", f"Connection failed: {str(e)}")
 
+#########################################
+# MonitorBox Class
+#########################################
+class MonitorBox(QFrame):
+    clicked = Signal(bool)
+    doubleClicked = Signal(bool)
+    
+    def __init__(self, monitor_data: dict, parent=None):
+        super().__init__(parent)
+        self.monitor_data = monitor_data
+        self.default_stylesheet = (
+            "QFrame { border: 2px solid #555; background-color: #333; padding: 10px; border-radius: 10px; }"
+            " QLabel { color: white; font-size: 14px; }"
+        )
+        self.setStyleSheet(self.default_stylesheet)
+        self.setFrameShape(QFrame.Box)
+        self.setFixedSize(400, 200)
+
+        layout = QHBoxLayout()
+        layout.setContentsMargins(10, 10, 10, 10)
+        layout.setSpacing(15)
+
+        self.image_label = QLabel()
+        self.image_label.setFixedSize(180, 150)
+        self.image_label.setStyleSheet("background-color: black; border-radius: 8px;")
+        layout.addWidget(self.image_label)
+
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(8)
+        
+
+        name_layout = QHBoxLayout()
+        name_label = QLabel("Name:")
+        name_label.setStyleSheet("color: white; font-size: 14px;")
+        name_label.setFixedWidth(80)
+        self.name_value = QLabel(monitor_data.get('name', 'Unknown'))
+        self.name_value.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        name_layout.addWidget(name_label)
+        name_layout.addWidget(self.name_value)
+        info_layout.addLayout(name_layout)
+        
+        count_layout = QHBoxLayout()
+        count_label = QLabel("People Count:")
+        count_label.setStyleSheet("color: white; font-size: 9px;")
+        count_label.setFixedWidth(80)
+        self.count_value = QLabel(str(monitor_data.get('people_count', 0)))
+        self.count_value.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
+        count_layout.addWidget(count_label)
+        count_layout.addWidget(self.count_value)
+        info_layout.addLayout(count_layout)
+        
+        layout.addLayout(info_layout)
+        layout.setStretch(0, 2)
+        layout.setStretch(1, 3)
+        self.setLayout(layout)
+        
+        self.update_image()
+
+    def update_data(self, new_data: dict):
+        self.monitor_data = new_data
+        self.name_value.setText(new_data.get('name', 'Unknown'))
+        self.count_value.setText(str(new_data.get('people_count', 0)))
+        self.update_image()
+
+    def update_image(self):
+        image_b64 = self.monitor_data.get("image")
+        if image_b64:
+            try:
+                image_data = base64.b64decode(image_b64)
+                nparray = np.frombuffer(image_data, np.uint8)
+                frame = cv2.imdecode(nparray, cv2.IMREAD_COLOR)
+                if frame is not None:
+                    frame = cv2.flip(frame, -1)
+                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                    height, width, channel = frame.shape
+                    bytes_per_line = 3 * width
+                    qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
+                    pixmap = QPixmap.fromImage(qimg)
+                    self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
+                else:
+                    self.image_label.setText("Unable to load image")
+                    self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white;")
+            except Exception as e:
+                self.image_label.setText(f"Error: {str(e)}")
+                self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white;")
+        else:
+            self.image_label.setText("No image available")
+            self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white;")
+
+    def mousePressEvent(self, event):
+        if self.isVisible():
+            self.clicked.emit(True)
+        super().mousePressEvent(event)
+
+
+    def mouseDoubleClickEvent(self, event):
+        if not isValid(self):
+            print("MonitorBox has been deleted, skipping event.")
+            return
+
+        if self.isVisible():
+            self.doubleClicked.emit(True)
+
+        try:
+            super().mouseDoubleClickEvent(event)
+        except RuntimeError:
+            print("Error: MonitorBox was deleted before event handling.")
+
+
+#########################################
+# MonitorTab Class
+#########################################
 class MonitorTab(QWidget):
     def __init__(self, settings, api_client, parent_tab_widget):
         super().__init__()
@@ -588,39 +702,24 @@ class MonitorTab(QWidget):
         self.layout = QVBoxLayout()
         self.layout.setContentsMargins(10, 10, 10, 10)
 
+        # Search Bar
         self.search_bar = QLineEdit()
         self.search_bar.setPlaceholderText("Search monitors by name...")
         self.search_bar.textChanged.connect(self.filter_monitors)
         self.layout.addWidget(self.search_bar)
 
-        scroll = QScrollArea()
-        scroll.setWidgetResizable(True)
+        # Scroll Area and Grid Layout for MonitorBox
+        self.scroll = QScrollArea()
+        self.scroll.setWidgetResizable(True)
         self.content_widget = QWidget()
         self.grid_layout = QGridLayout()
         self.grid_layout.setSpacing(15)
         self.content_widget.setLayout(self.grid_layout)
-        scroll.setWidget(self.content_widget)
-        self.layout.addWidget(scroll)
+        self.scroll.setWidget(self.content_widget)
+        self.layout.addWidget(self.scroll)
 
-        btn_layout = QHBoxLayout()
-        btn_layout.setSpacing(10)
-        self.btn_add = QPushButton("Add")
-        self.btn_add.clicked.connect(self.add_monitor)
-        self.btn_delete = QPushButton("Delete")
-        self.btn_delete.clicked.connect(self.delete_monitor)
-        self.btn_update = QPushButton("Update")
-        self.btn_update.clicked.connect(self.update_monitor)
-        self.btn_reset = QPushButton("Reset Counter")
-        self.btn_reset.clicked.connect(self.reset_monitor_counter)
-        self.btn_detail = QPushButton("Details")
-        self.btn_detail.clicked.connect(self.show_monitor_detail)
-        self.btn_refresh = QPushButton("Refresh")
-        self.btn_refresh.clicked.connect(self.load_data)
-        for btn in [self.btn_add, self.btn_delete, self.btn_update, self.btn_reset, self.btn_detail, self.btn_refresh]:
-            btn.setMinimumHeight(35)
-            btn_layout.addWidget(btn)
-        btn_layout.addStretch()
-        self.layout.addLayout(btn_layout)
+        # Create buttons
+        self.create_buttons()
         self.setLayout(self.layout)
 
         self.selected_monitor = None
@@ -631,59 +730,78 @@ class MonitorTab(QWidget):
         self.timer.timeout.connect(self.load_data)
         self.load_data()
 
-    def tab_activated(self):
-        self.timer.start(2000)
+    def create_buttons(self):
+        btn_layout = QHBoxLayout()
+        self.btn_add = QPushButton("Add", self)
+        self.btn_add.clicked.connect(self.add_monitor)
+        self.btn_delete = QPushButton("Delete", self)
+        self.btn_delete.clicked.connect(self.delete_monitor)
+        self.btn_update = QPushButton("Update", self)
+        self.btn_update.clicked.connect(self.update_monitor)
+        self.btn_reset = QPushButton("Reset Counter", self)
+        self.btn_reset.clicked.connect(self.reset_monitor_counter)
+        self.btn_detail = QPushButton("Details", self)
+        self.btn_detail.clicked.connect(lambda: self.show_monitor_detail())
+        self.btn_refresh = QPushButton("Refresh", self)
+        self.btn_refresh.clicked.connect(self.load_data)
 
-    def tab_deactivated(self):
-        self.timer.stop()
+        for btn in [self.btn_add, self.btn_delete, self.btn_update, self.btn_reset, self.btn_detail, self.btn_refresh]:
+            btn.setMinimumHeight(35)
+            btn_layout.addWidget(btn)
+        btn_layout.addStretch()
+        self.layout.addLayout(btn_layout)
 
     def load_data(self):
         try:
             resp = self.api_client.get_monitors()
             if resp.status_code == 200:
                 monitors = resp.json().get("data", [])
-                selected_name = self.selected_monitor["name"] if self.selected_monitor else None
+                selected_id = self.selected_monitor["id"] if self.selected_monitor else None
 
-                current_monitors = {box.monitor_data["name"]: box for box in self.monitor_boxes if "name" in box.monitor_data}
+                while self.grid_layout.count():
+                    item = self.grid_layout.takeAt(0)
+                    if item.widget():
+                        item.widget().deleteLater()
+                self.monitor_boxes.clear()
 
-                new_monitor_boxes = []
-                row = 0
-                col = 0
+                row, col = 0, 0
                 for monitor in monitors:
-                    name = monitor.get("name")
-                    if name in current_monitors:
-                        box = current_monitors[name]
-                        box.update_data(monitor)
-                    else:
-                        box = MonitorBox(monitor)
-                        box.clicked.connect(lambda checked, m=monitor, b=box: self.select_monitor(m, b))
-                        box.doubleClicked.connect(lambda m=monitor: self.show_monitor_detail(monitor=m))
-                        box.setContextMenuPolicy(Qt.CustomContextMenu)
-                        box.customContextMenuRequested.connect(lambda pos, m=monitor, b=box: self.show_context_menu(pos, m, b))
-                        self.grid_layout.addWidget(box, row, col)
-                        col += 1
-                        if col == 2:
-                            col = 0
-                            row += 1
-                    new_monitor_boxes.append(box)
+                    box = MonitorBox(monitor, self)
+                    box.clicked.connect(partial(self.on_box_clicked, monitor, box))
+                    box.doubleClicked.connect(partial(self.on_box_double_clicked, monitor))
+                    box.setContextMenuPolicy(Qt.CustomContextMenu)
+                    box.customContextMenuRequested.connect(partial(self.on_box_context_menu, monitor, box))
+                    self.grid_layout.addWidget(box, row, col)
+                    self.monitor_boxes.append(box)
 
-                for name, box in current_monitors.items():
-                    if name not in [m.get("name") for m in monitors]:
-                        self.grid_layout.removeWidget(box)
-                        box.deleteLater()
+                    col += 1
+                    if col == 2:
+                        col = 0
+                        row += 1
 
-                self.monitor_boxes = new_monitor_boxes
-
-                if selected_name:
+                if selected_id:
                     for box in self.monitor_boxes:
-                        if box.monitor_data.get("name") == selected_name:
+                        if box.monitor_data.get("id") == selected_id:
                             self.select_monitor(box.monitor_data, box)
                             break
+                    else:
+                        self.selected_monitor = None
+                        self.selected_monitor_box = None
+
             elif resp.status_code == 403:
                 QMessageBox.warning(self, "Error", "No permission to view Monitor tab")
                 self.setEnabled(False)
         except requests.RequestException as e:
             QMessageBox.warning(self, "Error", f"Connection failed: {str(e)}")
+
+    def on_box_clicked(self, monitor, box, checked):
+        self.select_monitor(monitor, box)
+
+    def on_box_double_clicked(self, monitor, checked):
+        self.show_monitor_detail(monitor=monitor)
+
+    def on_box_context_menu(self, monitor, box, pos):
+        self.show_context_menu(pos, monitor, box)
 
     def filter_monitors(self):
         search_text = self.search_bar.text().lower()
@@ -692,38 +810,25 @@ class MonitorTab(QWidget):
 
     def show_context_menu(self, pos, monitor, box):
         menu = QMenu(self)
-        update_action = menu.addAction("Update")
-        delete_action = menu.addAction("Delete")
-        reset_action = menu.addAction("Reset Counter")
-        action = menu.exec_(box.mapToGlobal(pos))
-        if action == update_action:
-            self.select_monitor(monitor, box)
-            self.update_monitor()
-        elif action == delete_action:
-            self.select_monitor(monitor, box)
-            self.delete_monitor()
-        elif action == reset_action:
-            self.select_monitor(monitor, box)
-            self.reset_monitor_counter()
+        menu.addAction("Update", lambda: (self.select_monitor(monitor, box), self.update_monitor()))
+        menu.addAction("Delete", lambda: (self.select_monitor(monitor, box), self.delete_monitor()))
+        menu.addAction("Reset Counter", lambda: (self.select_monitor(monitor, box), self.reset_monitor_counter()))
+        menu.exec_(box.mapToGlobal(pos))
 
     def select_monitor(self, monitor, box):
-        if self.selected_monitor_box and self.selected_monitor_box in self.monitor_boxes:
+        if self.selected_monitor_box and isValid(self.selected_monitor_box):
             self.selected_monitor_box.setStyleSheet(self.selected_monitor_box.default_stylesheet)
 
         self.selected_monitor = monitor
         self.selected_monitor_box = box
-        highlight_stylesheet = """
-            QFrame {
-                border: 2px solid #00FF00;
-                background-color: #333;
-                padding: 10px;
-                border-radius: 10px;
-            }
-            QLabel {
-                color: white;
-                font-size: 14px;
-            }
-        """
+
+        if not isValid(box):
+            return
+
+        highlight_stylesheet = (
+            "QFrame { border: 2px solid #00FF00; background-color: #333; padding: 10px; border-radius: 10px; }"
+            " QLabel { color: white; font-size: 14px; }"
+        )
         box.setStyleSheet(highlight_stylesheet)
 
     def add_monitor(self):
@@ -731,15 +836,15 @@ class MonitorTab(QWidget):
         dialog.setWindowTitle("Add Monitor")
         dialog.setMinimumWidth(300)
         layout = QFormLayout()
-        name = QLineEdit()
-        key = QLineEdit()
+        name_edit = QLineEdit()
+        key_edit = QLineEdit()
         gen_key_btn = QPushButton("Generate Key")
-        gen_key_btn.clicked.connect(lambda: key.setText(secrets.token_hex(9)[:19]))
-        layout.addRow("Name:", name)
-        layout.addRow("Key:", key)
+        gen_key_btn.clicked.connect(lambda: key_edit.setText(secrets.token_hex(9)[:19]))
+        layout.addRow("Name:", name_edit)
+        layout.addRow("Key:", key_edit)
         layout.addWidget(gen_key_btn)
         btn = QPushButton("Add")
-        btn.clicked.connect(lambda: self.send_add_monitor(dialog, name.text(), key.text()))
+        btn.clicked.connect(lambda: self.send_add_monitor(dialog, name_edit.text(), key_edit.text()))
         layout.addWidget(btn)
         dialog.setLayout(layout)
         dialog.exec()
@@ -750,8 +855,8 @@ class MonitorTab(QWidget):
             resp = self.api_client.add_monitor(data)
             if resp.status_code == 201:
                 QMessageBox.information(self, "Success", "Monitor added successfully!")
-                self.load_data()
                 dialog.accept()
+                self.load_data()
             else:
                 QMessageBox.warning(self, "Error", f"Add failed: {resp.json().get('message', 'Unknown error')}")
         except requests.RequestException as e:
@@ -781,27 +886,31 @@ class MonitorTab(QWidget):
         dialog.setWindowTitle("Update Monitor")
         dialog.setMinimumWidth(300)
         layout = QFormLayout()
-        name = QLineEdit(self.selected_monitor["name"])
-        key = QLineEdit(self.selected_monitor["key"])
+        name_edit = QLineEdit(self.selected_monitor["name"])
+        key_edit = QLineEdit(self.selected_monitor["key"])
         gen_key_btn = QPushButton("Generate Key")
-        gen_key_btn.clicked.connect(lambda: key.setText(secrets.token_hex(9)[:19]))
-        layout.addRow("Name:", name)
-        layout.addRow("Key:", key)
+        gen_key_btn.clicked.connect(lambda: key_edit.setText(secrets.token_hex(9)[:19]))
+        layout.addRow("Name:", name_edit)
+        layout.addRow("Key:", key_edit)
         layout.addWidget(gen_key_btn)
         btn = QPushButton("Update")
-        btn.clicked.connect(lambda: self.send_update_monitor(dialog, self.selected_monitor["id"], name.text(), key.text()))
+        btn.clicked.connect(lambda: self.send_update_monitor(self.selected_monitor["id"], name_edit.text(), key_edit.text(), dialog))
         layout.addWidget(btn)
         dialog.setLayout(layout)
         dialog.exec()
 
-    def send_update_monitor(self, dialog, id, name, key):
+    def send_update_monitor(self, id, name, key, dialog=None):
         try:
             data = {"id": int(id), "name": name, "key": key}
             resp = self.api_client.update_monitor(data)
             if resp.status_code == 200:
                 QMessageBox.information(self, "Success", "Monitor updated successfully!")
+                if self.selected_monitor and self.selected_monitor_box:
+                    self.selected_monitor.update({"name": name, "key": key})
+                    self.selected_monitor_box.update_data(self.selected_monitor)
                 self.load_data()
-                dialog.accept()
+                if dialog:
+                    dialog.accept()
             else:
                 QMessageBox.warning(self, "Error", f"Update failed: {resp.json().get('message', 'Unknown error')}")
         except requests.RequestException as e:
@@ -812,9 +921,7 @@ class MonitorTab(QWidget):
             QMessageBox.warning(self, "Error", "Please select a monitor to reset counter!")
             return
         try:
-            name = self.selected_monitor["name"]
-            key = self.selected_monitor["key"]
-            resp = self.api_client.reset_monitor_counter(name, key)
+            resp = self.api_client.reset_monitor_counter(self.selected_monitor["name"],self.selected_monitor["key"])
             if resp.status_code == 200:
                 QMessageBox.information(self, "Success", "Counter reset successfully!")
                 self.load_data()
@@ -824,10 +931,10 @@ class MonitorTab(QWidget):
             QMessageBox.warning(self, "Error", f"Connection failed: {str(e)}")
 
     def show_monitor_detail(self, monitor=None):
-        if not monitor and not self.selected_monitor:
+        monitor = monitor or self.selected_monitor
+        if not monitor:
             QMessageBox.warning(self, "Error", "Please select a monitor to view details!")
             return
-        monitor = monitor or self.selected_monitor
         dialog = QDialog(self)
         dialog.setWindowTitle("Monitor Details")
         layout = QVBoxLayout()
@@ -836,110 +943,11 @@ class MonitorTab(QWidget):
         dialog.setLayout(layout)
         dialog.exec()
 
-class MonitorBox(QFrame):
-    clicked = Signal(bool)
-    doubleClicked = Signal()
+    def tab_activated(self):
+        self.timer.start(2000)
 
-    def __init__(self, monitor_data: dict):
-        super().__init__()
-        self.monitor_data = monitor_data
-        self.setFrameShape(QFrame.Box)
-        self.setFixedSize(400, 200)
-
-        self.default_stylesheet = """
-            QFrame {
-                border: 2px solid #555;
-                background-color: #333;
-                padding: 10px;
-                border-radius: 10px;
-            }
-            QLabel {
-                color: white;
-                font-size: 14px;
-            }
-        """
-        self.setStyleSheet(self.default_stylesheet)
-
-        layout = QHBoxLayout()
-        layout.setContentsMargins(10, 10, 10, 10)
-        layout.setSpacing(15)
-
-        self.image_label = QLabel()
-        self.image_label.setFixedSize(180, 150)
-        self.image_label.setStyleSheet("background-color: black; border-radius: 8px;")
-        layout.addWidget(self.image_label)
-
-        info_layout = QVBoxLayout()
-        info_layout.setSpacing(8)
-
-        self.name_layout = QHBoxLayout()
-        name_label = QLabel("Name:")
-        name_label.setStyleSheet("color: white; font-size: 14px;")
-        name_label.setFixedWidth(80)
-        self.name_value = QLabel(monitor_data.get('name', 'Unknown'))
-        self.name_value.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
-        self.name_layout.addWidget(name_label)
-        self.name_layout.addWidget(self.name_value)
-        info_layout.addLayout(self.name_layout)
-
-        self.count_layout = QHBoxLayout()
-        count_label = QLabel("People Count:")
-        count_label.setStyleSheet("color: white; font-size: 9px;")
-        count_label.setFixedWidth(80)
-        self.count_value = QLabel(str(monitor_data.get('people_count', 0)))
-        self.count_value.setStyleSheet("color: white; font-size: 14px; font-weight: bold;")
-        self.count_layout.addWidget(count_label)
-        self.count_layout.addWidget(self.count_value)
-        info_layout.addLayout(self.count_layout)
-
-        layout.addLayout(info_layout)
-        layout.setStretch(0, 2)
-        layout.setStretch(1, 3)
-
-        self.setLayout(layout)
-        self.setMouseTracking(True)
-        self.update_image()
-
-    def update_data(self, new_data: dict):
-        self.monitor_data = new_data
-        self.name_value.setText(new_data.get('name', 'Unknown'))
-        self.count_value.setText(str(new_data.get('people_count', 0)))
-        self.update_image()
-
-    def update_image(self):
-        image_b64 = self.monitor_data.get("image")
-        if image_b64:
-            try:
-                image_data = base64.b64decode(image_b64)
-                nparray = np.frombuffer(image_data, np.uint8)
-                frame = cv2.imdecode(nparray, cv2.IMREAD_COLOR)
-                if frame is not None:
-                    frame = cv2.flip(frame, -1)
-                    frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                    height, width, channel = frame.shape
-                    bytes_per_line = 3 * width
-                    qimg = QImage(frame.data, width, height, bytes_per_line, QImage.Format_RGB888)
-                    pixmap = QPixmap.fromImage(qimg)
-                    self.image_label.setPixmap(pixmap.scaled(self.image_label.size(), Qt.KeepAspectRatio, Qt.SmoothTransformation))
-                else:
-                    self.image_label.setText("Unable to load image")
-                    self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white; text-align: center;")
-            except Exception as e:
-                self.image_label.setText(f"Error: {str(e)}")
-                self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white; text-align: center;")
-        else:
-            self.image_label.setText("No image available")
-            self.image_label.setStyleSheet("background-color: black; border: 1px solid white; color: white; text-align: center;")
-
-    def mousePressEvent(self, event):
-        if self.isVisible():
-            self.clicked.emit(True)
-        super().mousePressEvent(event)
-
-    def mouseDoubleClickEvent(self, event):
-        if self.isVisible():
-            self.doubleClicked.emit()
-        super().mouseDoubleClickEvent(event)
+    def tab_deactivated(self):
+        self.timer.stop()
 
 class SettingTab(QWidget):
     apply_settings = Signal()

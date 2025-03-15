@@ -45,7 +45,7 @@ class MainWindow(QMainWindow):
 
         self.session_timer = QTimer(self)
         self.session_timer.timeout.connect(self.check_session)
-        self.session_timer.start(50000)
+        self.session_timer.start(30000)
 
         self.apply_settings()
 
