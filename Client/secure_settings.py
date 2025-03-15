@@ -98,6 +98,6 @@ class SecureSettings:
 
         if self.failed_attempts >= 3:
             self.lock_time = time.time() + 60
-            raise Exception("🔒 Too many failed attempts! Please wait 10 seconds.")
+            raise Exception("🔒 Too many failed attempts! Please wait 60 seconds.")
 
         return False

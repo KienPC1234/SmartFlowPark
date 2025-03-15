@@ -40,7 +40,7 @@ if os.path.exists('login.json'):
         print(f"Lỗi đọc file cấu hình: {e}")
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = YOLO("yolo11s.pt",verbose=False).to(device)
+model = YOLO("model.pt",verbose=False).to(device)
 
 # Popup đăng nhập
 class LoginPopup(Popup):
