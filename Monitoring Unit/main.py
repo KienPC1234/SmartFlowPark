@@ -16,10 +16,9 @@ from kivy.properties import NumericProperty, StringProperty
 import torch
 import time
 import json
-import os,sys
+import os, sys
 from server_connector import ServerConnector
 
-# Biến toàn cục
 boundary_line = []
 mouse_pos = None
 crossed_ids = set()
@@ -30,33 +29,38 @@ clear_boundary_flag = False
 frame_lock = threading.Lock()
 boundary_lock = threading.Lock()
 
-# Đọc file cấu hình đã lưu, nếu có
-config = {'key': '', 'name': '', 'ip': '127.0.0.1', 'port': '8080'}
+config = {'key': '', 'name': '', 'ip': '127.0.0.1', 'port': '8080', 'protocol': 'http'}
 if os.path.exists('login.json'):
     try:
         with open('login.json', 'r') as f:
             config = json.load(f)
     except Exception as e:
-        print(f"Lỗi đọc file cấu hình: {e}")
+        print(f"Error reading config file: {e}")
 
 device = 'cuda' if torch.cuda.is_available() else 'cpu'
-model = YOLO("model.pt",verbose=False).to(device)
+model = YOLO("model.pt", verbose=False).to(device)
 
-# Popup đăng nhập
 class LoginPopup(Popup):
     def __init__(self, on_connect, saved_config, **kwargs):
         super(LoginPopup, self).__init__(**kwargs)
-        self.title = 'Nhập thông tin kết nối'
+        self.title = 'Enter Connection Details'
         self.size_hint = (0.6, 0.6)
         self.auto_dismiss = False
         layout = BoxLayout(orientation='vertical', padding=10, spacing=10)
-        self.key_input = TextInput(hint_text='Nhập key', multiline=False, text=saved_config.get('key', ''))
-        self.name_input = TextInput(hint_text='Nhập tên máy giám sát', multiline=False, text=saved_config.get('name', ''))
-        self.ip_input = TextInput(hint_text='Nhập IP server', multiline=False, text=saved_config.get('ip', '127.0.0.1'))
-        self.port_input = TextInput(hint_text='Nhập cổng', multiline=False, text=saved_config.get('port', '8080'))
-        submit_button = Button(text='Kết nối', size_hint=(1, 0.5), on_press=lambda x: on_connect(self))
+        self.key_input = TextInput(hint_text='Enter key', multiline=False, text=saved_config.get('key', ''))
+        self.name_input = TextInput(hint_text='Enter monitor name', multiline=False, text=saved_config.get('name', ''))
+        self.protocol_spinner = Spinner(
+            text=saved_config.get('protocol', 'http'),
+            values=['http', 'https'],
+            size_hint=(1, 0.5)
+        )
+        self.ip_input = TextInput(hint_text='Enter server IP', multiline=False, text=saved_config.get('ip', '127.0.0.1'))
+        self.port_input = TextInput(hint_text='Enter port', multiline=False, text=saved_config.get('port', '8080'))
+        submit_button = Button(text='Connect', size_hint=(1, 0.5), on_press=lambda x: on_connect(self))
         layout.add_widget(self.key_input)
         layout.add_widget(self.name_input)
+        layout.add_widget(Label(text='Protocol:'))
+        layout.add_widget(self.protocol_spinner)
         layout.add_widget(self.ip_input)
         layout.add_widget(self.port_input)
         layout.add_widget(submit_button)
@@ -105,7 +109,7 @@ def get_available_cameras(max_test=5):
             if ret:
                 available.append(str(i))
             cap.release()
-    return available if available else ["Không có camera"]
+    return available if available else ["No camera available"]
 
 class PeopleCounterApp(App):
     people_count = NumericProperty(0)
@@ -124,7 +128,7 @@ class PeopleCounterApp(App):
         layout.add_widget(self.count_label)
         
         direction_layout = BoxLayout(size_hint=(1, 0.1))
-        self.direction_label = Label(text="Hướng 'đi vào': Trái sang Phải")
+        self.direction_label = Label(text="Entry direction: Left to Right")
         self.direction_checkbox = CheckBox(active=True)
         self.direction_checkbox.bind(active=self.on_checkbox_active)
         direction_layout.add_widget(self.direction_label)
@@ -142,14 +146,14 @@ class PeopleCounterApp(App):
         camera_layout = BoxLayout(size_hint=(1, 0.1), spacing=10)
         camera_options = get_available_cameras()
         self.camera_spinner = Spinner(
-            text=camera_options[0] if camera_options else "Không có camera", 
+            text=camera_options[0] if camera_options else "No camera available",
             values=camera_options,
             size_hint=(0.5, 1)
         )
         self.camera_spinner.bind(text=self.on_camera_select)
-        self.connect_button = Button(text="Kết nối Server")
+        self.connect_button = Button(text="Connect to Server")
         self.connect_button.bind(on_press=self.open_login_popup)
-        clear_button = Button(text="Xóa Đường Biên")
+        clear_button = Button(text="Clear Boundary")
         clear_button.bind(on_press=self.on_clear_boundary)
         camera_layout.add_widget(self.camera_spinner)
         camera_layout.add_widget(self.connect_button)
@@ -182,16 +186,17 @@ class PeopleCounterApp(App):
         config['name'] = popup.name_input.text
         config['ip'] = popup.ip_input.text
         config['port'] = popup.port_input.text
+        config['protocol'] = popup.protocol_spinner.text
     
         try:
             with open('login.json', 'w') as f:
                 json.dump(config, f)
         except Exception as e:
-            print(f"Lỗi lưu file cấu hình: {e}")
+            print(f"Error saving config file: {e}")
     
-        server_url = f"http://{config['ip']}:{config['port']}"
+        server_url = f"{config['protocol']}://{config['ip']}:{config['port']}"
         self.connector = ServerConnector(server_url, config['key'], config['name'])
-        self.connector.app = self  
+        self.connector.app = self
     
         if self.connector.connect():
             self.connection_status = f"Connected (Latency: {self.connector.latency:.2f} ms)"
@@ -200,7 +205,7 @@ class PeopleCounterApp(App):
         popup.dismiss()
 
     def on_camera_select(self, spinner, text):
-        if text != "Không có camera":
+        if text != "No camera available":
             global stop_thread
             stop_thread = True
             time.sleep(0.5)
@@ -215,9 +220,9 @@ class PeopleCounterApp(App):
     def on_checkbox_active(self, checkbox, value):
         self.direction_left_to_right = value
         if value:
-            self.direction_label.text = "Hướng 'đi vào': Trái sang Phải"
+            self.direction_label.text = "Entry direction: Left to Right"
         else:
-            self.direction_label.text = "Hướng 'đi vào': Phải sang Trái"
+            self.direction_label.text = "Entry direction: Right to Left"
 
     def on_clear_boundary(self, instance):
         global clear_boundary_flag
@@ -238,7 +243,7 @@ def process_video(source, app):
     global current_frame, stop_thread, boundary_line, mouse_pos, clear_boundary_flag, crossed_ids, prev_sides
     cap = cv2.VideoCapture(source, cv2.CAP_DSHOW)
     if not cap.isOpened():
-        Clock.schedule_once(lambda dt: app.show_error_popup(f"Không thể mở camera {source}"))
+        Clock.schedule_once(lambda dt: app.show_error_popup(f"Unable to open camera {source}"))
         return
     while cap.isOpened() and not stop_thread:
         ret, frame = cap.read()
@@ -246,7 +251,7 @@ def process_video(source, app):
             cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
             continue
         
-        results = model.track(frame, persist=True, tracker="bytetrack.yaml",verbose=False)
+        results = model.track(frame, persist=True, tracker="bytetrack.yaml", verbose=False)
         if results and results[0].boxes:
             boxes = results[0].boxes.xyxy.cpu().numpy()
             track_ids = results[0].boxes.id

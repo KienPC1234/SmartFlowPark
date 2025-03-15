@@ -62,18 +62,16 @@ class ApiClient:
     
     def reset_monitor_counter(self, name, key):
         data = {"action": "reset", "name": name, "key": key}
-        return requests.post(f"{self.base_url}/app?type=monitors",headers=self.headers, json=data, timeout=5)
+        return requests.post(f"{self.base_url}/app?type=monitors", headers=self.headers, json=data, timeout=5)
     
 class GoogleGenAI:
     def __init__(self):
-        """Khởi tạo client với API key và model từ settings.json hoặc giá trị mặc định."""
         self.api_key = "AIzaSyA1hn2RpP0rzLJuqUYTMDzsr_IFL8H41d8"
         self.model_name = "gemini-2.0-flash"
         self._load_or_create_settings()
         self.client = genai.Client(api_key=self.api_key)
 
     def _load_or_create_settings(self):
-        """Tải hoặc tạo file settings.json với API key và model."""
         settings_file = 'settings.json'
         default_settings = {'api_key': self.api_key, 'model': self.model_name}
 
@@ -84,22 +82,20 @@ class GoogleGenAI:
                 self.api_key = settings.get('api_key', self.api_key)
                 self.model_name = settings.get('model', self.model_name)
             except Exception as e:
-                print(f"Lỗi đọc {settings_file}: {e}. Dùng giá trị mặc định.")
+                print(f"Error reading {settings_file}: {e}. Using default values.")
                 self._save_settings(default_settings, settings_file)
         else:
             self._save_settings(default_settings, settings_file)
-            print(f"Đã tạo {settings_file} với giá trị mặc định.")
+            print(f"Created {settings_file} with default values.")
 
     def _save_settings(self, settings, settings_file):
-        """Lưu settings vào file JSON."""
         try:
             with open(settings_file, 'w') as f:
                 json.dump(settings, f, indent=4)
         except Exception as e:
-            print(f"Lỗi lưu {settings_file}: {e}")
+            print(f"Error saving {settings_file}: {e}")
 
     def _format_zone_details(self, zone, zone_thresholds):
-        """Định dạng thông tin zone ngắn gọn."""
         max_capacity = zone_thresholds.get(str(zone['id']), 10)
         return (
             f"Name: {zone['name']}\n"
@@ -108,7 +104,6 @@ class GoogleGenAI:
         )
 
     def predict_people_count(self, zone, zone_thresholds, custom_request=""):
-        """Dự đoán số người trong zone trong 1 giờ tới với yêu cầu tùy chỉnh."""
         details = self._format_zone_details(zone, zone_thresholds)
         prompt = (
             f"Zone info:\n{details}\n"
@@ -117,12 +112,11 @@ class GoogleGenAI:
             "Return a number and a brief explanation."
         )
         if custom_request:
-            prompt += f"\nCustom request: {custom_request}"
+            prompt += f"\nCustom request, data: {custom_request}"
         response = self.client.models.generate_content(model=self.model_name, contents=prompt)
         return response.text
 
     def suggest_people_management(self, zone, zone_thresholds, custom_request=""):
-        """Đề xuất cách quản lý số người trong zone với yêu cầu tùy chỉnh."""
         details = self._format_zone_details(zone, zone_thresholds)
         prompt = (
             f"Zone info:\n{details}\n"
@@ -131,12 +125,11 @@ class GoogleGenAI:
             "Advise whether to increase, decrease, or maintain the number, with clear steps."
         )
         if custom_request:
-            prompt += f"\nCustom request: {custom_request}"
+            prompt += f"\nCustom request, data: {custom_request}"
         response = self.client.models.generate_content(model=self.model_name, contents=prompt)
         return response.text
 
     def warn_people_management(self, zone, zone_thresholds, custom_request=""):
-        """Cảnh báo và hướng dẫn quản lý với 2 mức độ, hỗ trợ yêu cầu tùy chỉnh."""
         details = self._format_zone_details(zone, zone_thresholds)
         people_count = zone['people_count']
         max_capacity = zone_thresholds.get(str(zone['id']), 10)
@@ -156,6 +149,6 @@ class GoogleGenAI:
             "For Yellow, suggest preventive steps. For Red, recommend urgent actions to reduce crowding."
         )
         if custom_request:
-            prompt += f"\nCustom request: {custom_request}"
+            prompt += f"\nCustom request, data: {custom_request}"
         response = self.client.models.generate_content(model=self.model_name, contents=prompt)
         return response.text

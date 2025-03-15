@@ -22,18 +22,16 @@ class FlaskServer:
         self.settings_manager = settings_manager
         self.monitor_manager = monitor_manager
         self.app = Flask(__name__)
-        self.tokens = {}  # Lưu token: {token: {"username": "...", "permissions": [...], "expiry": timestamp}}
+        self.tokens = {}  # {token: {"username": "...", "permissions": [...], "expiry": timestamp}}
         self.register_routes()
 
     def _is_valid_client(self, key, name):
-        """Kiểm tra xem key và name có hợp lệ trong danh sách monitors không"""
         for monitor in self.monitor_manager.get_all_monitors():
             if monitor.get("key") == key and monitor.get("name") == name:
                 return True
         return False
 
     def _check_auth(self, token, required_permission=None):
-        """Kiểm tra token và quyền"""
         if token not in self.tokens:
             return False, "Invalid or expired token"
         user_info = self.tokens[token]
@@ -128,6 +126,8 @@ class FlaskServer:
                                     people_count = min(counts)
                                 elif mode == "avg":
                                     people_count = int(round(sum(counts) / len(counts)))
+                                elif mode == "sum":
+                                    people_count = sum(counts)
                             real_time_zone = {
                                 "id": zone.get("id"),
                                 "name": zone.get("name", ""),

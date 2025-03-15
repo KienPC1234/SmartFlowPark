@@ -64,7 +64,7 @@ class SettingsManager:
     def update_account(self, account_id, account):
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
-        permissions = json.dumps(account.get('permissions', []))  # Chuyển list permissions thành chuỗi JSON
+        permissions = json.dumps(account.get('permissions', []))  
         cursor.execute('''
             UPDATE accounts 
             SET username = ?, password = ?, permissions = ?, status = ?
@@ -80,7 +80,7 @@ class SettingsManager:
     def add_zone(self, zone):
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
-        monitors = json.dumps(zone.get('monitors', []))  # Chuyển list monitors thành chuỗi JSON
+        monitors = json.dumps(zone.get('monitors', []))  
         cursor.execute('INSERT INTO zones (name, mode, monitors, people_count, status) VALUES (?, ?, ?, ?, ?)',
                       (zone.get('name', ''),
                        zone.get('mode', 'max'),
@@ -95,7 +95,7 @@ class SettingsManager:
     def update_zone(self, zone_id, zone):
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
-        monitors = json.dumps(zone.get('monitors', []))  # Chuyển list monitors thành chuỗi JSON
+        monitors = json.dumps(zone.get('monitors', []))  
         cursor.execute('''
             UPDATE zones 
             SET name = ?, mode = ?, monitors = ?, people_count = ?, status = ?
@@ -130,7 +130,7 @@ class SettingsManager:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM accounts')
         accounts = [{'id': row[0], 'username': row[1], 'password': row[2], 
-                    'permissions': json.loads(row[3]), 'status': row[4]}  # Parse chuỗi JSON thành list
+                    'permissions': json.loads(row[3]), 'status': row[4]} 
                    for row in cursor.fetchall()]
         conn.close()
         return accounts
@@ -140,7 +140,7 @@ class SettingsManager:
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM zones')
         zones = [{'id': row[0], 'name': row[1], 'mode': row[2], 
-                 'monitors': json.loads(row[3]), 'people_count': row[4], 'status': row[5]}  # Parse chuỗi JSON thành list
+                 'monitors': json.loads(row[3]), 'people_count': row[4], 'status': row[5]}  
                 for row in cursor.fetchall()]
         conn.close()
         return zones

@@ -13,8 +13,8 @@ class LoginWindow(QWidget):
         self.setWindowTitle("Login")
         self.setMinimumSize(400, 350)
         self.settings = None
-        self.failed_attempts = 0  # Đếm số lần thử sai PIN
-        self.max_attempts = 3  # Giới hạn số lần thử sai PIN
+        self.failed_attempts = 0 
+        self.max_attempts = 3 
         layout = QVBoxLayout()
         layout.setContentsMargins(20, 20, 20, 20)
         layout.setSpacing(15)
@@ -53,7 +53,6 @@ class LoginWindow(QWidget):
         self.login_btn.clicked.connect(self.attempt_login)
         layout.addWidget(self.login_btn)
 
-        # Thêm nút "Use Another Account"
         self.use_another_btn = QPushButton("Use Another Account")
         self.use_another_btn.setMinimumHeight(40)
         self.use_another_btn.clicked.connect(self.reset_login_form)
@@ -162,7 +161,7 @@ class LoginWindow(QWidget):
         self.password_edit.clear()
         self.pin_edit.clear()
         self.remember_cb.setChecked(False)
-        self.failed_attempts = 0  # Reset số lần thử sai
+        self.failed_attempts = 0  
         if os.path.exists("client_data.dat"):
             os.remove("client_data.dat")
             os.remove("salt.bin")

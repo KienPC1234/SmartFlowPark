@@ -7,7 +7,6 @@ class MonitorManager:
         self._init_db()
 
     def _init_db(self):
-        """Khởi tạo database và bảng monitors nếu chưa tồn tại"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''
@@ -27,7 +26,6 @@ class MonitorManager:
         conn.close()
 
     def add_monitor(self, monitor):
-        """Thêm một monitor mới"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''
@@ -47,7 +45,6 @@ class MonitorManager:
         return new_id
 
     def update_monitor(self, monitor_id, monitor):
-        """Cập nhật thông tin monitor"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('''
@@ -67,7 +64,6 @@ class MonitorManager:
         conn.close()
 
     def get_all_monitors(self):
-        """Lấy tất cả monitors"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM monitors')
@@ -79,7 +75,6 @@ class MonitorManager:
         return monitors
 
     def get_monitor_by_id(self, monitor_id):
-        """Lấy monitor theo id"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         cursor.execute('SELECT * FROM monitors WHERE id = ?', (monitor_id,))

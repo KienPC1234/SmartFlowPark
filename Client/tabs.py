@@ -230,7 +230,7 @@ class ZoneTab(QWidget):
         self.gen_ai = GoogleGenAI()
 
         self.custom_request_input = QLineEdit()
-        self.custom_request_input.setPlaceholderText("Enter custom request for AI (e.g., 'Focus on peak hours')")
+        self.custom_request_input.setPlaceholderText("Enter custom request, data for AI (e.g., 'Focus on peak hours' , 'It's raining today'). You may also provide additional data to improve predictions.")
         self.layout.addWidget(self.custom_request_input)
 
         self.search_bar = QLineEdit()
@@ -409,7 +409,7 @@ class ZoneTab(QWidget):
         layout = QFormLayout()
         name = QLineEdit()
         mode = QComboBox()
-        mode.addItems(["max", "min", "avg"])
+        mode.addItems(["max", "min", "avg", "sum"])
         maxzone = QLineEdit()
         monitors = QListWidget()
         self.populate_monitors(monitors)
@@ -501,7 +501,7 @@ class ZoneTab(QWidget):
         zone_data = self.get_zone_data(id_text)
         name = QLineEdit(zone_data.get("name", ""))
         mode = QComboBox()
-        mode.addItems(["max", "min", "avg"])
+        mode.addItems(["max", "min", "avg","sum"])
         mode.setCurrentText(zone_data.get("mode", "max"))
         from settings import load_zone_thresholds
         zone_thresholds = load_zone_thresholds()

@@ -14,7 +14,7 @@ class LoginDialog(QDialog):
         super().__init__()
         self.settings_manager = settings_manager
         self.user_account = None
-        self.setWindowTitle("Đăng nhập")
+        self.setWindowTitle("Login")
         self.setup_ui()
 
     def setup_ui(self):
@@ -22,13 +22,13 @@ class LoginDialog(QDialog):
         self.username_input = QLineEdit()
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(QLabel("Tên tài khoản:"))
+        layout.addWidget(QLabel("Username:"))
         layout.addWidget(self.username_input)
-        layout.addWidget(QLabel("Mật khẩu:"))
+        layout.addWidget(QLabel("Password:"))
         layout.addWidget(self.password_input)
         btn_layout = QHBoxLayout()
-        self.login_btn = QPushButton("Đăng nhập")
-        self.cancel_btn = QPushButton("Hủy")
+        self.login_btn = QPushButton("Login")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.login_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -43,13 +43,13 @@ class LoginDialog(QDialog):
                 self.user_account = account
                 self.accept()
                 return
-        QMessageBox.warning(self, "Lỗi", "Thông tin đăng nhập không hợp lệ")
+        QMessageBox.warning(self, "Error", "Invalid login credentials")
 
 class AccountCreationDialog(QDialog):
     def __init__(self, settings_manager):
         super().__init__()
         self.settings_manager = settings_manager
-        self.setWindowTitle("Tạo tài khoản mới")
+        self.setWindowTitle("Create New Account")
         self.setup_ui()
 
     def setup_ui(self):
@@ -59,22 +59,22 @@ class AccountCreationDialog(QDialog):
         self.password_input.setEchoMode(QLineEdit.Password)
         self.confirm_input = QLineEdit()
         self.confirm_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(QLabel("Tên tài khoản:"))
+        layout.addWidget(QLabel("Username:"))
         layout.addWidget(self.username_input)
-        layout.addWidget(QLabel("Mật khẩu:"))
+        layout.addWidget(QLabel("Password:"))
         layout.addWidget(self.password_input)
-        layout.addWidget(QLabel("Nhập lại mật khẩu:"))
+        layout.addWidget(QLabel("Confirm Password:"))
         layout.addWidget(self.confirm_input)
-        layout.addWidget(QLabel("Chọn quyền truy cập:"))
-        self.chk_home = QCheckBox("Trang chủ")
-        self.chk_zone = QCheckBox("Quản lý khu vực")
-        self.chk_monitor = QCheckBox("Quản lý máy giám sát")
+        layout.addWidget(QLabel("Select Permissions:"))
+        self.chk_home = QCheckBox("Home")
+        self.chk_zone = QCheckBox("Zone Management")
+        self.chk_monitor = QCheckBox("Monitor Management")
         layout.addWidget(self.chk_home)
         layout.addWidget(self.chk_zone)
         layout.addWidget(self.chk_monitor)
         btn_layout = QHBoxLayout()
-        self.create_btn = QPushButton("Tạo tài khoản")
-        self.cancel_btn = QPushButton("Hủy")
+        self.create_btn = QPushButton("Create Account")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.create_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -86,10 +86,10 @@ class AccountCreationDialog(QDialog):
         password = self.password_input.text().strip()
         confirm = self.confirm_input.text().strip()
         if not username or not password or not confirm:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng nhập đầy đủ thông tin")
+            QMessageBox.warning(self, "Error", "Please fill in all fields")
             return
         if password != confirm:
-            QMessageBox.warning(self, "Lỗi", "Mật khẩu không khớp")
+            QMessageBox.warning(self, "Error", "Passwords do not match")
             return
         permissions = []
         if self.chk_home.isChecked():
@@ -107,21 +107,21 @@ class AccountEditDialog(QDialog):
         super().__init__()
         self.settings_manager = settings_manager
         self.account = account
-        self.setWindowTitle("Chỉnh sửa tài khoản")
+        self.setWindowTitle("Edit Account")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel(f"Tên tài khoản: {self.account['username']}"))
+        layout.addWidget(QLabel(f"Username: {self.account['username']}"))
         self.password_input = QLineEdit()
         self.password_input.setEchoMode(QLineEdit.Password)
-        layout.addWidget(QLabel("Mật khẩu mới:"))
+        layout.addWidget(QLabel("New Password:"))
         layout.addWidget(self.password_input)
-        layout.addWidget(QLabel("Chọn quyền truy cập:"))
-        self.chk_home = QCheckBox("Trang chủ")
-        self.chk_zone = QCheckBox("Quản lý khu vực")
-        self.chk_monitor = QCheckBox("Quản lý máy giám sát")
-        permissions = self.account.get("permissions", []) 
+        layout.addWidget(QLabel("Select Permissions:"))
+        self.chk_home = QCheckBox("Home")
+        self.chk_zone = QCheckBox("Zone Management")
+        self.chk_monitor = QCheckBox("Monitor Management")
+        permissions = self.account.get("permissions", [])
         self.chk_home.setChecked("home" in permissions)
         self.chk_zone.setChecked("zone" in permissions)
         self.chk_monitor.setChecked("monitor" in permissions)
@@ -129,8 +129,8 @@ class AccountEditDialog(QDialog):
         layout.addWidget(self.chk_zone)
         layout.addWidget(self.chk_monitor)
         btn_layout = QHBoxLayout()
-        self.save_btn = QPushButton("Lưu")
-        self.cancel_btn = QPushButton("Hủy")
+        self.save_btn = QPushButton("Save")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.save_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -171,17 +171,17 @@ class HomePage(QWidget):
         port_layout.addWidget(self.port_input)
         layout.addLayout(ip_layout)
         layout.addLayout(port_layout)
-        self.save_server_btn = QPushButton("Lưu Server")
+        self.save_server_btn = QPushButton("Save Server")
         layout.addWidget(self.save_server_btn)
         self.account_list = QListWidget()
         self.refresh_accounts()
-        layout.addWidget(QLabel("Danh sách tài khoản:"))
+        layout.addWidget(QLabel("Account List:"))
         layout.addWidget(self.account_list)
         btn_layout = QHBoxLayout()
         self.edit_account_btn = QPushButton("Edit Account")
         self.create_account_btn = QPushButton("Create Account")
-        self.refresh_btn = QPushButton("Refresh")  
-        self.delete_btn = QPushButton("Delete")    
+        self.refresh_btn = QPushButton("Refresh")
+        self.delete_btn = QPushButton("Delete")
         btn_layout.addWidget(self.edit_account_btn)
         btn_layout.addWidget(self.create_account_btn)
         btn_layout.addWidget(self.refresh_btn)
@@ -190,8 +190,8 @@ class HomePage(QWidget):
         self.save_server_btn.clicked.connect(self.save_server)
         self.edit_account_btn.clicked.connect(self.edit_account)
         self.create_account_btn.clicked.connect(self.create_account)
-        self.refresh_btn.clicked.connect(self.refresh_accounts)  
-        self.delete_btn.clicked.connect(self.delete_selected_account)  
+        self.refresh_btn.clicked.connect(self.refresh_accounts)
+        self.delete_btn.clicked.connect(self.delete_selected_account)
 
     def refresh_accounts(self):
         self.account_list.clear()
@@ -201,11 +201,11 @@ class HomePage(QWidget):
     def delete_selected_account(self):
         selected = self.account_list.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một tài khoản để xóa.")
+            QMessageBox.warning(self, "Error", "Please select an account to delete.")
             return
         account = self.settings_manager.get_all_accounts()[selected]
         account_id = account["id"]
-        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa tài khoản này?",
+        reply = QMessageBox.question(self, "Confirm", "Are you sure you want to delete this account?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
@@ -214,30 +214,25 @@ class HomePage(QWidget):
                 cursor = conn.cursor()
                 cursor.execute('DELETE FROM accounts WHERE id = ?', (account_id,))
                 if cursor.rowcount == 0:
-                    QMessageBox.warning(self, "Lỗi", "Tài khoản không tồn tại.")
+                    QMessageBox.warning(self, "Error", "Account does not exist.")
                 else:
                     conn.commit()
-                    QMessageBox.information(self, "Thành công", "Tài khoản đã được xóa.")
+                    QMessageBox.information(self, "Success", "Account has been deleted.")
                     self.refresh_accounts()
                 conn.close()
             except sqlite3.Error as e:
-                QMessageBox.warning(self, "Lỗi", f"Không thể xóa tài khoản: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Unable to delete account: {str(e)}")
 
     def create_account(self):
         dialog = AccountCreationDialog(self.settings_manager)
         if dialog.exec() == QDialog.Accepted:
             self.refresh_accounts()
 
-    def refresh_accounts(self):
-        self.account_list.clear()
-        for account in self.settings_manager.get_all_accounts():
-            self.account_list.addItem(account["username"])
-
     def save_server(self):
         ip = self.ip_input.text().strip()
         port = int(self.port_input.text().strip())
         self.settings_manager.update_server_settings(ip, port)
-        QMessageBox.information(self, "Thông báo", "Server đã được lưu!")
+        QMessageBox.information(self, "Notification", "Server has been saved!")
 
     def edit_account(self):
         selected = self.account_list.currentRow()
@@ -253,21 +248,21 @@ class ZoneDialog(QDialog):
         super().__init__(parent)
         self.monitor_manager = monitor_manager
         self.zone = zone
-        self.setWindowTitle("Sửa khu vực" if self.zone else "Tạo khu vực")
+        self.setWindowTitle("Edit Zone" if self.zone else "Create Zone")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
-        layout.addWidget(QLabel("Tên khu vực:"))
+        layout.addWidget(QLabel("Zone Name:"))
         self.name_edit = QLineEdit(self.zone.get("name", "") if self.zone else "")
         layout.addWidget(self.name_edit)
-        layout.addWidget(QLabel("Chế độ People Count:"))
+        layout.addWidget(QLabel("People Count Mode:"))
         self.mode_combo = QComboBox()
-        self.mode_combo.addItems(["max", "min", "avg"])
+        self.mode_combo.addItems(["max", "min", "avg", "sum"])
         if self.zone:
             self.mode_combo.setCurrentText(self.zone.get("mode", "max"))
         layout.addWidget(self.mode_combo)
-        layout.addWidget(QLabel("Chọn máy giám sát:"))
+        layout.addWidget(QLabel("Select Monitors:"))
         self.monitor_list = QListWidget()
         for monitor in self.monitor_manager.get_all_monitors():
             item = QListWidgetItem(monitor["name"])
@@ -277,7 +272,7 @@ class ZoneDialog(QDialog):
         layout.addWidget(self.monitor_list)
         btn_layout = QHBoxLayout()
         self.ok_btn = QPushButton("OK")
-        self.cancel_btn = QPushButton("Hủy")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.ok_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -306,13 +301,13 @@ class ZoneManagementTab(QWidget):
         layout = QVBoxLayout(self)
         self.zone_list = QListWidget()
         self.refresh_zones()
-        layout.addWidget(QLabel("Danh sách khu vực:"))
+        layout.addWidget(QLabel("Zone List:"))
         layout.addWidget(self.zone_list)
         btn_layout = QHBoxLayout()
-        self.create_zone_btn = QPushButton("Tạo khu vực")
+        self.create_zone_btn = QPushButton("Create Zone")
         self.edit_zone_btn = QPushButton("Edit")
-        self.refresh_btn = QPushButton("Refresh")  
-        self.delete_btn = QPushButton("Delete")   
+        self.refresh_btn = QPushButton("Refresh")
+        self.delete_btn = QPushButton("Delete")
         btn_layout.addWidget(self.create_zone_btn)
         btn_layout.addWidget(self.edit_zone_btn)
         btn_layout.addWidget(self.refresh_btn)
@@ -320,8 +315,8 @@ class ZoneManagementTab(QWidget):
         layout.addLayout(btn_layout)
         self.create_zone_btn.clicked.connect(self.create_zone)
         self.edit_zone_btn.clicked.connect(self.edit_zone)
-        self.refresh_btn.clicked.connect(self.refresh_zones) 
-        self.delete_btn.clicked.connect(self.delete_selected_zone)  
+        self.refresh_btn.clicked.connect(self.refresh_zones)
+        self.delete_btn.clicked.connect(self.delete_selected_zone)
 
     def refresh_zones(self):
         self.zone_list.clear()
@@ -331,11 +326,11 @@ class ZoneManagementTab(QWidget):
     def delete_selected_zone(self):
         selected = self.zone_list.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một khu vực để xóa.")
+            QMessageBox.warning(self, "Error", "Please select a zone to delete.")
             return
         zone = self.settings_manager.get_all_zones()[selected]
         zone_id = zone["id"]
-        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa khu vực này?",
+        reply = QMessageBox.question(self, "Confirm", "Are you sure you want to delete this zone?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
@@ -344,14 +339,14 @@ class ZoneManagementTab(QWidget):
                 cursor = conn.cursor()
                 cursor.execute('DELETE FROM zones WHERE id = ?', (zone_id,))
                 if cursor.rowcount == 0:
-                    QMessageBox.warning(self, "Lỗi", "Khu vực không tồn tại.")
+                    QMessageBox.warning(self, "Error", "Zone does not exist.")
                 else:
                     conn.commit()
-                    QMessageBox.information(self, "Thành công", "Khu vực đã được xóa.")
+                    QMessageBox.information(self, "Success", "Zone has been deleted.")
                     self.refresh_zones()
                 conn.close()
             except sqlite3.Error as e:
-                QMessageBox.warning(self, "Lỗi", f"Không thể xóa khu vực: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Unable to delete zone: {str(e)}")
 
     def create_zone(self):
         dialog = ZoneDialog(self.monitor_manager, parent=self)
@@ -387,7 +382,8 @@ class ZoneManagementTab(QWidget):
             zone["people_count"] = (
                 max(counts) if counts and zone.get("mode", "max") == "max" else
                 min(counts) if counts and zone.get("mode") == "min" else
-                int(round(sum(counts) / len(counts))) if counts and zone.get("mode") == "avg" else 0
+                int(round(sum(counts) / len(counts))) if counts and zone.get("mode") == "avg" else 
+                sum(counts) if counts and zone.get("mode") == "sum" else 0
             )
             self.settings_manager.update_zone(zone["id"], zone)
         self.refresh_zones()
@@ -396,15 +392,15 @@ class AddMonitorDialog(QDialog):
     def __init__(self, monitor_manager):
         super().__init__()
         self.monitor_manager = monitor_manager
-        self.setWindowTitle("Thêm máy giám sát")
+        self.setWindowTitle("Add Monitor")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         self.name_input = QLineEdit()
         self.key_input = QLineEdit()
-        self.gen_key_btn = QPushButton("Tạo key")
-        layout.addWidget(QLabel("Tên máy giám sát:"))
+        self.gen_key_btn = QPushButton("Generate Key")
+        layout.addWidget(QLabel("Monitor Name:"))
         layout.addWidget(self.name_input)
         layout.addWidget(QLabel("Key:"))
         key_layout = QHBoxLayout()
@@ -413,7 +409,7 @@ class AddMonitorDialog(QDialog):
         layout.addLayout(key_layout)
         btn_layout = QHBoxLayout()
         self.ok_btn = QPushButton("OK")
-        self.cancel_btn = QPushButton("Hủy")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.ok_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -428,11 +424,11 @@ class AddMonitorDialog(QDialog):
         name = self.name_input.text().strip()
         key = self.key_input.text().strip()
         if not name or not key:
-            QMessageBox.warning(self, "Lỗi", "Nhập đầy đủ thông tin")
+            QMessageBox.warning(self, "Error", "Please fill in all fields")
             return
         monitor = {
             "name": name,
-            "key": key, 
+            "key": key,
             "image": "",
             "people_count": 0,
             "status": "ERROR",
@@ -446,20 +442,20 @@ class MonitorEditDialog(QDialog):
         super().__init__()
         self.monitor_manager = monitor_manager
         self.monitor = monitor
-        self.setWindowTitle("Chỉnh sửa máy giám sát")
+        self.setWindowTitle("Edit Monitor")
         self.setup_ui()
 
     def setup_ui(self):
         layout = QVBoxLayout(self)
         self.name_input = QLineEdit(self.monitor.get("name", ""))
-        self.key_input = QLineEdit(self.monitor.get("key", ""))  # Hiển thị key từ database
-        layout.addWidget(QLabel("Tên máy giám sát:"))
+        self.key_input = QLineEdit(self.monitor.get("key", ""))
+        layout.addWidget(QLabel("Monitor Name:"))
         layout.addWidget(self.name_input)
         layout.addWidget(QLabel("Key:"))
         layout.addWidget(self.key_input)
         btn_layout = QHBoxLayout()
-        self.save_btn = QPushButton("Lưu")
-        self.cancel_btn = QPushButton("Hủy")
+        self.save_btn = QPushButton("Save")
+        self.cancel_btn = QPushButton("Cancel")
         btn_layout.addWidget(self.save_btn)
         btn_layout.addWidget(self.cancel_btn)
         layout.addLayout(btn_layout)
@@ -470,10 +466,10 @@ class MonitorEditDialog(QDialog):
         new_name = self.name_input.text().strip()
         new_key = self.key_input.text().strip()
         if not new_name or not new_key:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng nhập đầy đủ thông tin")
+            QMessageBox.warning(self, "Error", "Please fill in all fields")
             return
         self.monitor["name"] = new_name
-        self.monitor["key"] = new_key  
+        self.monitor["key"] = new_key
         self.monitor_manager.update_monitor(self.monitor["id"], self.monitor)
         self.accept()
 
@@ -491,16 +487,16 @@ class MonitorManagementTab(QWidget):
         left_layout = QVBoxLayout()
         self.monitor_list = QListWidget()
         self.refresh_monitors()
-        left_layout.addWidget(QLabel("Danh sách máy giám sát:"))
+        left_layout.addWidget(QLabel("Monitor List:"))
         left_layout.addWidget(self.monitor_list)
 
         btn_layout = QHBoxLayout()
-        self.add_monitor_btn = QPushButton("Thêm máy giám sát")
+        self.add_monitor_btn = QPushButton("Add Monitor")
         self.edit_monitor_btn = QPushButton("Edit Monitor")
         self.reset_monitor_btn = QPushButton("Reset Counter")
-        self.reload_btn = QPushButton("Tải lại")
-        self.refresh_btn = QPushButton("Refresh")  # Thêm nút Refresh
-        self.delete_btn = QPushButton("Delete")    # Thêm nút Delete
+        self.reload_btn = QPushButton("Reload")
+        self.refresh_btn = QPushButton("Refresh")
+        self.delete_btn = QPushButton("Delete")
         btn_layout.addWidget(self.add_monitor_btn)
         btn_layout.addWidget(self.edit_monitor_btn)
         btn_layout.addWidget(self.reset_monitor_btn)
@@ -514,7 +510,7 @@ class MonitorManagementTab(QWidget):
         self.image_label.setFixedSize(320, 240)
         self.image_label.setStyleSheet("background-color: black;")
         right_layout.addWidget(self.image_label)
-        self.detail_label = QLabel("Chi tiết máy giám sát:")
+        self.detail_label = QLabel("Monitor Details:")
         self.detail_label.setWordWrap(True)
         right_layout.addWidget(self.detail_label)
         main_layout.addLayout(left_layout, 2)
@@ -525,8 +521,8 @@ class MonitorManagementTab(QWidget):
         self.edit_monitor_btn.clicked.connect(self.edit_monitor)
         self.reset_monitor_btn.clicked.connect(self.reset_monitor)
         self.reload_btn.clicked.connect(self.update_monitor_data)
-        self.refresh_btn.clicked.connect(self.refresh_monitors)  # Gắn sự kiện cho Refresh
-        self.delete_btn.clicked.connect(self.delete_selected_monitor)  # Gắn sự kiện cho Delete
+        self.refresh_btn.clicked.connect(self.refresh_monitors)
+        self.delete_btn.clicked.connect(self.delete_selected_monitor)
 
     def refresh_monitors(self):
         self.monitor_list.clear()
@@ -536,11 +532,11 @@ class MonitorManagementTab(QWidget):
     def delete_selected_monitor(self):
         selected = self.monitor_list.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một máy giám sát để xóa.")
+            QMessageBox.warning(self, "Error", "Please select a monitor to delete.")
             return
         monitor = self.monitor_manager.get_all_monitors()[selected]
         monitor_id = monitor["id"]
-        reply = QMessageBox.question(self, "Xác nhận", "Bạn có chắc muốn xóa máy giám sát này?",
+        reply = QMessageBox.question(self, "Confirm", "Are you sure you want to delete this monitor?",
                                      QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
         if reply == QMessageBox.Yes:
             try:
@@ -549,39 +545,34 @@ class MonitorManagementTab(QWidget):
                 cursor = conn.cursor()
                 cursor.execute('DELETE FROM monitors WHERE id = ?', (monitor_id,))
                 if cursor.rowcount == 0:
-                    QMessageBox.warning(self, "Lỗi", "Máy giám sát không tồn tại.")
+                    QMessageBox.warning(self, "Error", "Monitor does not exist.")
                 else:
                     conn.commit()
-                    QMessageBox.information(self, "Thành công", "Máy giám sát đã được xóa.")
+                    QMessageBox.information(self, "Success", "Monitor has been deleted.")
                     self.refresh_monitors()
                 conn.close()
             except sqlite3.Error as e:
-                QMessageBox.warning(self, "Lỗi", f"Không thể xóa máy giám sát: {str(e)}")
+                QMessageBox.warning(self, "Error", f"Unable to delete monitor: {str(e)}")
 
     def reset_monitor(self):
         selected = self.monitor_list.currentRow()
         if selected < 0:
-            QMessageBox.warning(self, "Lỗi", "Vui lòng chọn một máy giám sát để reset.")
+            QMessageBox.warning(self, "Error", "Please select a monitor to reset.")
             return
         monitor = self.monitor_manager.get_all_monitors()[selected]
         key = monitor.get("key")
         name = monitor.get("name")
         if not key or not name:
-            QMessageBox.warning(self, "Lỗi", "Máy giám sát không có key hoặc name.")
+            QMessageBox.warning(self, "Error", "Monitor does not have a key or name.")
             return
         client_id = f"{key}_{name}"
         if client_id in connected_clients:
             connected_clients[client_id]["people_count"] = 0
             connected_clients[client_id]["reset_counter"] = True
-            QMessageBox.information(self, "Thành công", "Đã reset đếm người.")
+            QMessageBox.information(self, "Success", "People count has been reset.")
         else:
-            QMessageBox.warning(self, "Lỗi", "Máy giám sát không được kết nối.")
+            QMessageBox.warning(self, "Error", "Monitor is not connected.")
         self.refresh_monitors()
-
-    def refresh_monitors(self):
-        self.monitor_list.clear()
-        for monitor in self.monitor_manager.get_all_monitors():
-            self.monitor_list.addItem(monitor["name"])
 
     def add_monitor(self):
         dialog = AddMonitorDialog(self.monitor_manager)
@@ -592,12 +583,12 @@ class MonitorManagementTab(QWidget):
         self.update_monitor_data()
 
     def update_monitor_data(self):
-        selected = self.monitor_list.currentRow() 
-        monitors = self.monitor_manager.get_all_monitors() 
+        selected = self.monitor_list.currentRow()
+        monitors = self.monitor_manager.get_all_monitors()
 
         if selected < 0 or selected >= len(monitors):
-            self.detail_label.setText("Chi tiết máy giám sát: (Không có monitor nào được chọn hoặc monitor đã bị xóa)")
-            self.show_black_image()  
+            self.detail_label.setText("Monitor Details: (No monitor selected or monitor has been deleted)")
+            self.show_black_image()
             return
 
         monitor = monitors[selected]
@@ -651,6 +642,7 @@ class MonitorManagementTab(QWidget):
                 self.show_black_image()
         else:
             self.show_black_image()
+
     def show_black_image(self):
         black = QPixmap(self.image_label.size())
         black.fill(Qt.black)
@@ -678,7 +670,7 @@ class MainWindow(QMainWindow):
         self.home_page = HomePage(self.settings_manager)
         self.zone_tab = ZoneManagementTab(self.settings_manager, self.monitor_manager)
         self.monitor_tab = MonitorManagementTab(self.monitor_manager)
-        self.tab_widget.addTab(self.home_page, "Trang chủ")
-        self.tab_widget.addTab(self.zone_tab, "Quản lý khu vực")
-        self.tab_widget.addTab(self.monitor_tab, "Quản lý máy giám sát")
+        self.tab_widget.addTab(self.home_page, "Home")
+        self.tab_widget.addTab(self.zone_tab, "Zone Management")
+        self.tab_widget.addTab(self.monitor_tab, "Monitor Management")
         self.setCentralWidget(self.tab_widget)

@@ -3,7 +3,7 @@ import os
 from secure_settings import SecureSettings
 
 DATA_FILE = "client_data.dat"
-SETTINGS_FILE = "settings.json"  # File lưu cài đặt giao diện
+SETTINGS_FILE = "settings.json"
 ZONE_THRESHOLDS_FILE = "zone_thresholds.json"
 
 class ClientSettings:
@@ -18,10 +18,10 @@ class ClientSettings:
         self.font = "Arial"
         self.font_size = 10
         self.theme = "Default Dark"
-        self.bg_color = "Dark Gray"  
-        self.text_color = "White" 
+        self.bg_color = "Dark Gray"
+        self.text_color = "White"
         self.permissions = []
-        self.load_ui_settings()  
+        self.load_ui_settings()
 
     def to_dict(self):
         return {
@@ -44,7 +44,6 @@ class ClientSettings:
         self.__dict__.update(data)
 
     def load_ui_settings(self):
-        """Tải cài đặt giao diện từ settings.json nếu tồn tại."""
         if os.path.exists(SETTINGS_FILE):
             try:
                 with open(SETTINGS_FILE, "r") as f:
@@ -58,7 +57,6 @@ class ClientSettings:
                 print(f"Error loading UI settings: {e}")
 
 def save_client_data(settings: ClientSettings, pin: str):
-    """Lưu dữ liệu cài đặt bằng SecureSettings (dữ liệu nhạy cảm)"""
     secure = SecureSettings(settings_file=DATA_FILE)
     secure.authenticate(pin)
     secure.save_settings(
@@ -79,7 +77,6 @@ def save_client_data(settings: ClientSettings, pin: str):
         json.dump(data, f)
 
 def load_client_data(pin: str) -> tuple[ClientSettings, bool]:
-    """Tải dữ liệu cài đặt bằng SecureSettings"""
     secure = SecureSettings(settings_file=DATA_FILE)
     settings = ClientSettings()
     success = False
@@ -105,7 +102,6 @@ def load_client_data(pin: str) -> tuple[ClientSettings, bool]:
     return settings, success
 
 def save_ui_settings(settings: ClientSettings):
-    """Lưu cài đặt giao diện vào settings.json"""
     try:
         ui_settings = {
             "font": settings.font,
