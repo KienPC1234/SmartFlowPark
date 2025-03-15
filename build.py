@@ -40,6 +40,7 @@ def build_app(app_name, main_file):
         "python", "-m", "nuitka",
         "--standalone",
         "--assume-yes-for-downloads",
+        "--windows-disable-console",
         "--remove-output",
         f"--output-dir={output_dir}",
     ]
