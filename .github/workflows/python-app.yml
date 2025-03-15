@@ -11,7 +11,7 @@ on:
 
 jobs:
   build:
-    runs-on: windows-2022
+    runs-on: windows-latest
 
     steps:
       - name: Checkout repository
@@ -26,7 +26,11 @@ jobs:
         run: |
           choco install visualstudio2022buildtools --force --params "--add Microsoft.VisualStudio.Workload.VCTools --includeRecommended"
 
-      - name: Install dependencies
+      - name: Increase Heap Size for MSVC
+        run: |
+          echo "CL=/Zm8000" | Out-File -FilePath $env:GITHUB_ENV -Append
+
+      - name: Install dependencies from build.txt
         run: |
           python -m pip install --upgrade pip
           pip install -r build.txt
