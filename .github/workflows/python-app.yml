@@ -22,30 +22,12 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Visual Studio Build Tools (MSVC 14.3)
-        run: |
-          choco install visualstudio2019buildtools --version=16.11.3
-          choco install microsoft-build-tools --version=14.3
-          # Cài các addon như Windows SDK, C++ build tools, etc.
-          choco install windows-sdk-10.0
-          choco install cmake
-        shell: bash
-
-      - name: Cache MSVC and Nuitka build dependencies
-        uses: actions/cache@v3
+      - name: Set up MSVC Developer Command Prompt
+        uses: ilammy/msvc-dev-cmd@v1
         with:
-          path: |
-            C:\Program Files (x86)\Microsoft Visual Studio\2019\BuildTools\VC\Tools\MSVC\14.3
-            C:\Users\runneradmin\.cache\pip
-          key: ${{ runner.os }}-msvc-14.3-${{ hashFiles('**/build.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-msvc-14.3-
-            ${{ runner.os }}-
-
-      - name: Increase Heap Size for MSVC
-        run: |
-          echo CL=/Zm8000 >> "%GITHUB_ENV%"
-        shell: cmd
+          vsversion: 2019        # Chọn phiên bản Visual Studio (ở đây là 2019)
+          arch: amd64            # Chọn kiến trúc hệ thống (x64)
+          toolset: 14.3          # Chọn phiên bản toolset VC++
 
       - name: Verify environment variables
         run: |
