@@ -12,6 +12,8 @@ SOURCE_DIRS = {
     "Monitoring Unit": "Monitoring Unit/main.py",
 }
 
+EXCLUDED_EXTENSIONS = {".json", ".dat", ".bin"}
+
 BUILD_DIR = "build"
 NUITKA_PLUGINS = ["pyside6"]
 CUDA_VERSIONS = ["12.4"] if sys.platform != "darwin" else []
@@ -97,6 +99,13 @@ def is_static_libpython_available():
         return False
 
 
+def copy_non_excluded_files(source_dir, output_dir):
+    for file in os.listdir(source_dir):
+        file_path = os.path.join(source_dir, file)
+        if os.path.isfile(file_path) and not file.lower().endswith(tuple(EXCLUDED_EXTENSIONS)):
+            shutil.copy2(file_path, os.path.join(output_dir, file))
+            logging.info(f"Copied {file} to {output_dir}")
+
 def build_app(app_name, main_file, cuda_version=None):
     suffix = f" cu{cuda_version}" if cuda_version else ""
     output_dir = os.path.join(BUILD_DIR, f"{app_name} App{suffix}")
@@ -152,6 +161,10 @@ def build_app(app_name, main_file, cuda_version=None):
     
     logging.info(f"{app_name}{suffix} built successfully!")
     move_and_cleanup_dist(output_dir)
+
+    parent_dir = os.path.dirname(main_file)
+    copy_non_excluded_files(parent_dir, output_dir)
+
     compress_build(output_dir)
 
 def compress_build(output_dir):
