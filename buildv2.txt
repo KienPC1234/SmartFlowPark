@@ -1,0 +1,14 @@
+markdown
+google-genai
+nuitka
+argon2-cffi
+PySide6
+pycryptodome
+cryptography
+requests
+numpy
+shiboken6
+ultralytics 
+kivy 
+torch 
+opencv-python

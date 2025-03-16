@@ -10,30 +10,26 @@ jobs:
   build:
     strategy:
       matrix:
-        os: [windows-latest]
+        os: [windows-latest, ubuntu-latest, macos-latest]
 
     runs-on: ${{ matrix.os }}
 
     steps:
-      # Check-out repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # Setup Python 3.12 với retry
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'  # Cố định Python 3.12
+          python-version: '3.12'  
           architecture: 'x64'
           cache: 'pip'
-          cache-dependency-path: build.txt
+          cache-dependency-path: buildv2.txt
 
-      # Install dependencies from build.txt
       - name: Install dependencies
         run: |
-          pip install -r build.txt
+          pip install -r buildv2.txt
 
-      # Build Client App
       - name: Build Client Application
         uses: Nuitka/Nuitka-Action@main
         with:
@@ -48,7 +44,6 @@ jobs:
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
 
-      # Build Monitoring Unit App
       - name: Build Monitoring Unit Application
         uses: Nuitka/Nuitka-Action@main
         with:
@@ -63,7 +58,6 @@ jobs:
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App
 
-      # Upload Client Artifact
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -72,7 +66,6 @@ jobs:
             build/Client App/**
           include-hidden-files: true
 
-      # Upload Monitoring Unit Artifact
       - name: Upload Monitoring Unit Artifact
         uses: actions/upload-artifact@v4
         with:
