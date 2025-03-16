@@ -27,8 +27,6 @@ jobs:
           architecture: 'x64'
           cache: 'pip'
           cache-dependency-path: build.txt
-        retries: 3
-        timeout-minutes: 10
 
       # Install dependencies from build.txt
       - name: Install dependencies
