@@ -46,7 +46,15 @@ else:
 
 print(f"Using: {device}")
 
-model = YOLO("model.pt", verbose=False).to(device)
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "model.pt")
+
+if not os.path.exists(MODEL_PATH):
+    raise FileNotFoundError(f"model.pt not found at: {MODEL_PATH}\n"
+                            f"Make sure this file is in the folder: {BASE_DIR}")
+
+# Load model
+model = YOLO(MODEL_PATH, verbose=False).to(device)
 
 class LoginPopup(Popup):
     def __init__(self, on_connect, saved_config, **kwargs):
