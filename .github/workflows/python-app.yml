@@ -32,7 +32,9 @@ jobs:
 
       - name: Set Compiler Heap Size (Windows)
         if: runner.os == 'Windows'
-        run: echo "CL=/Zm8000" >> $GITHUB_ENV
+        run: |
+          echo "CL=/Zm2000" >> $GITHUB_ENV
+          echo "LDFLAGS=/heap:8000000" >> $GITHUB_ENV
 
 
       - name: Build Client Application
