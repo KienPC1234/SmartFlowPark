@@ -12,7 +12,7 @@ SOURCE_DIRS = {
     "Monitoring Unit": "Monitoring Unit/main.py",
 }
 
-EXCLUDED_EXTENSIONS = {".json", ".dat", ".bin"}
+EXCLUDED_EXTENSIONS = {".json", ".dat", ".bin",".py",".pyc",}
 
 BUILD_DIR = "build"
 NUITKA_PLUGINS = ["pyside6"]
