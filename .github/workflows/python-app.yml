@@ -46,7 +46,6 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
-          extra-options: --lto=no --low-memory
 
       - name: Build Monitoring Unit Application (Basic - macOS)
         if: matrix.os == 'macos-latest'
