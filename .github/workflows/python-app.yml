@@ -30,10 +30,6 @@ jobs:
         run: |
           pip install -r buildv2.txt
 
-      - name: Install clang-w64 (Windows)
-        if: runner.os == 'Windows'
-        run: choco install clang -y
-
 
       - name: Build Client Application
         uses: Nuitka/Nuitka-Action@main
@@ -46,7 +42,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
-          python-flag: ${{ runner.os == 'Windows' && '--clang' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
 
       - name: Build Monitoring Unit Application (Basic - macOS)
         if: matrix.os == 'macos-latest'
@@ -74,7 +70,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu124
-          python-flag: ${{ runner.os == 'Windows' && '--clang' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
 
       - name: Install PyTorch with CUDA 12.6
         if: matrix.os != 'macos-latest'
@@ -92,7 +88,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu126
-          python-flag: ${{ runner.os == 'Windows' && '--clang' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
