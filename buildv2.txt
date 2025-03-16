@@ -11,3 +11,4 @@ shiboken6
 ultralytics 
 kivy 
 opencv-python
+nuitka
