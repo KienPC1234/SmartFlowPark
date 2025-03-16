@@ -192,11 +192,12 @@ def main():
     os.makedirs(BUILD_DIR, exist_ok=True)
     create_build_dir()
     build_app("Client", SOURCE_DIRS["Client"])
-    build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
     if sys.platform != "darwin":
         for cuda_version in CUDA_VERSIONS:
             install_pytorch(cuda_version)
             build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version)
+    else:
+        build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
     logging.info(f"Build complete! Files output at: {BUILD_DIR}")
 
 
