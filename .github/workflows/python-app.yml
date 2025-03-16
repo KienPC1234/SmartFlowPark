@@ -1,56 +1,89 @@
-name: Build with Nuitka
+name: Build Python Applications with Nuitka
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    branches:
-      - main
-  workflow_dispatch:
+    branches: [ main ]
 
 jobs:
   build:
-    runs-on: windows-latest
+    strategy:
+      matrix:
+        os: [windows-latest, ubuntu-latest, macos-latest]  # Build trên Windows, Linux, và macOS
+
+    runs-on: ${{ matrix.os }}
 
     steps:
+      # Check-out repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Setup Python 3.12
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: '3.12'  # Sử dụng Python 3.12
+          architecture: 'x64'
+          cache: 'pip'
+          cache-dependency-path: build.txt  # Cache dựa trên build.txt
 
-      - name: Set up MSVC Developer Command Prompt
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          vsversion: 2019        # Chọn phiên bản Visual Studio (ở đây là 2019)
-          arch: amd64            # Chọn kiến trúc hệ thống (x64)
-          toolset: 14.3          # Chọn phiên bản toolset VC++
-
-      - name: Verify environment variables
+      # Install dependencies from build.txt
+      - name: Install dependencies
         run: |
-          echo "CL variable: %CL%"
-          echo "GITHUB_ENV content:"
-          type "%GITHUB_ENV%"
-        shell: cmd
-
-      - name: Install dependencies from build.txt
-        run: |
-          python -m pip install --upgrade pip
           pip install -r build.txt
 
-      - name: Run Nuitka build script
-        run: |
-          python build.py
+      # Build Client App
+      - name: Build Client Application
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: Client/main.py
+          mode: standalone  # Tạo file thực thi độc lập
+          enable-plugins: |
+            pyside6
+            multiprocessing
+            pkg-resources
+          additional-args: |
+            --assume-yes-for-downloads
+            --windows-console-mode=disable  # Chỉ áp dụng cho Windows
+            --remove-output
+            --output-dir=build/Client App
 
-      - name: Archive build output
-        run: |
-          Compress-Archive -Path build/* -DestinationPath build_output.zip
+      # Build Monitoring Unit App
+      - name: Build Monitoring Unit Application
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: Monitoring Unit/main.py
+          mode: standalone  # Tạo file thực thi độc lập
+          enable-plugins: |
+            pyside6
+            multiprocessing
+            pkg-resources
+          additional-args: |
+            --assume-yes-for-downloads
+            --windows-console-mode=disable  # Chỉ áp dụng cho Windows
+            --remove-output
+            --output-dir=build/Monitoring Unit App
 
-      - name: Upload build artifact
+      # Upload artifacts cho từng hệ điều hành
+      - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: nuitka-build
-          path: build_output.zip
+          name: ${{ matrix.os }}-Client-App
+          path: |
+            build/Client App/*.exe       # Windows
+            build/Client App/*.bin       # Linux/macOS
+            build/Client App/*.app/**/*  # macOS bundle
+          include-hidden-files: true
+
+      - name: Upload Monitoring Unit Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-Monitoring-Unit-App
+          path: |
+            build/Monitoring Unit App/*.exe       # Windows
+            build/Monitoring Unit App/*.bin       # Linux/macOS
+            build/Monitoring Unit App/*.app/**/*  # macOS bundle
+          include-hidden-files: true
