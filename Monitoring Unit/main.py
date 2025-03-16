@@ -16,7 +16,7 @@ from kivy.properties import NumericProperty, StringProperty
 import torch
 import time
 import json
-import os, sys
+import os
 from server_connector import ServerConnector
 
 boundary_line = []
@@ -37,7 +37,15 @@ if os.path.exists('login.json'):
     except Exception as e:
         print(f"Error reading config file: {e}")
 
-device = 'cuda' if torch.cuda.is_available() else 'cpu'
+if torch.backends.mps.is_available():
+    device = "mps"
+elif torch.cuda.is_available():
+    device = "cuda"
+else:
+    device = "cpu"
+
+print(f"Using: {device}")
+
 model = YOLO("model.pt", verbose=False).to(device)
 
 class LoginPopup(Popup):

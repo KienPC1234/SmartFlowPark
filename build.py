@@ -152,6 +152,9 @@ def build_app(app_name, main_file, cuda_version=None):
 
 
 def main():
+    if os.path.exists(BUILD_DIR):
+        shutil.rmtree(BUILD_DIR)
+    os.makedirs(BUILD_DIR, exist_ok=True)
     create_build_dir()
     build_app("Client", SOURCE_DIRS["Client"])
     build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
