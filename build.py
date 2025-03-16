@@ -78,6 +78,7 @@ def build_app(app_name, main_file, cuda_version=None):
         "--assume-yes-for-downloads",
         "--remove-output",
         f"--output-dir={output_dir}",
+        "--static-libpython=yes",
     ]
 
     if sys.platform == "win32":
