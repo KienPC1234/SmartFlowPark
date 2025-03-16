@@ -14,8 +14,6 @@ BUILD_DIR = "build"
 
 NUITKA_PLUGINS = [
     "pyside6",        
-    "multiprocessing",  
-    "pkg-resources",  
 ]
 
 def create_build_dir():

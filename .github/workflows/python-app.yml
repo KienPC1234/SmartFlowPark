@@ -42,8 +42,6 @@ jobs:
           mode: standalone
           enable-plugins: |
             pyside6
-            multiprocessing
-            pkg-resources
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
@@ -56,55 +54,43 @@ jobs:
           nuitka-version: main
           script-name: Monitoring Unit/main.py
           mode: standalone
-          enable-plugins: |
-            pyside6
-            multiprocessing
-            pkg-resources
           assume-yes-for-downloads: true
           output-dir: build/Monitoring Unit App
 
       # Install PyTorch with CUDA 12.4 (Windows và Linux)
       - name: Install PyTorch with CUDA 12.4
-        if: matrix.os != 'macos-latest'  # Không chạy trên macOS
+        if: matrix.os != 'macos-latest' 
         run: |
           pip uninstall -y torch torchvision torchaudio
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
 
       # Build Monitoring Unit Application with CUDA 12.4 (Windows và Linux)
       - name: Build Monitoring Unit Application (CUDA 12.4)
-        if: matrix.os != 'macos-latest'  # Không chạy trên macOS
+        if: matrix.os != 'macos-latest'  
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
           script-name: Monitoring Unit/main.py
           mode: standalone
-          enable-plugins: |
-            pyside6
-            multiprocessing
-            pkg-resources
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu124
 
       # Install PyTorch with CUDA 12.6 (Windows và Linux)
       - name: Install PyTorch with CUDA 12.6
-        if: matrix.os != 'macos-latest'  # Không chạy trên macOS
+        if: matrix.os != 'macos-latest'  
         run: |
           pip uninstall -y torch torchvision torchaudio
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
 
       # Build Monitoring Unit Application with CUDA 12.6 (Windows và Linux)
       - name: Build Monitoring Unit Application (CUDA 12.6)
-        if: matrix.os != 'macos-latest'  # Không chạy trên macOS
+        if: matrix.os != 'macos-latest'  
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
           script-name: Monitoring Unit/main.py
           mode: standalone
-          enable-plugins: |
-            pyside6
-            multiprocessing
-            pkg-resources
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu126
@@ -120,7 +106,7 @@ jobs:
 
       # Upload Monitoring Unit Artifact (Basic - macOS)
       - name: Upload Monitoring Unit Artifact (Basic - macOS)
-        if: matrix.os == 'macos-latest'  # Chỉ chạy trên macOS
+        if: matrix.os == 'macos-latest' 
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-Monitoring-Unit-App
@@ -130,7 +116,7 @@ jobs:
 
       # Upload Monitoring Unit Artifact (CUDA 12.4 - Windows và Linux)
       - name: Upload Monitoring Unit Artifact (CUDA 12.4)
-        if: matrix.os != 'macos-latest'  # Không chạy trên macOS
+        if: matrix.os != 'macos-latest'  
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-Monitoring-Unit-App-cu124
