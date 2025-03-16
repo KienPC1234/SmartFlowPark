@@ -26,40 +26,19 @@ jobs:
           cache: 'pip'
           cache-dependency-path: buildv2.txt
 
-      - name: Install dependencies
-        run: |
-          pip install -r buildv2.txt
-
       - name: Build Applications
-        run: |
-          python build.py
-
-      - name: Install PyTorch with CUDA 12.4 (Linux & Windows)
-        if: matrix.os != 'macos-latest'
-        run: |
-          pip uninstall -y torch torchvision torchaudio
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
-          python build.py
-
-      - name: Install PyTorch with CUDA 12.6 (Linux & Windows)
-        if: matrix.os != 'macos-latest'
-        run: |
-          pip uninstall -y torch torchvision torchaudio
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-          python build.py
+        run: python build.py
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-Client-App
-          path: |
-            build/Client App/**
+          path: build/Client App/**
           include-hidden-files: true
 
       - name: Upload Monitoring Unit Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-Monitoring-Unit-App
-          path: |
-            build/Monitoring Unit App/**
+          path: build/Monitoring Unit App/**
           include-hidden-files: true
