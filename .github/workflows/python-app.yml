@@ -30,11 +30,9 @@ jobs:
         run: |
           pip install -r buildv2.txt
 
-      - name: Set Compiler Heap Size (Windows)
+      - name: Install MinGW-w64 (Windows)
         if: runner.os == 'Windows'
-        run: |
-          echo "CL=/Zm2000" >> $GITHUB_ENV
-          echo "LDFLAGS=/heap:8000000" >> $GITHUB_ENV
+        run: choco install mingw -y
 
 
       - name: Build Client Application
@@ -48,6 +46,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
+          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Build Monitoring Unit Application (Basic - macOS)
         if: matrix.os == 'macos-latest'
@@ -75,6 +74,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu124
+          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Install PyTorch with CUDA 12.6
         if: matrix.os != 'macos-latest'
@@ -92,6 +92,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu126
+          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
