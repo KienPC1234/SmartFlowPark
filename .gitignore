@@ -176,3 +176,5 @@ cython_debug/
 
 .db
 .json
+
+nuitka-crash-report.xml

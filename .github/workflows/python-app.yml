@@ -50,6 +50,11 @@ jobs:
       - name: Build Applications
         run: python build.py
 
+      - name: List build contents
+        run: |
+          ls -la build || dir build
+        shell: bash
+
       - name: Compress build directories
         run: |
           cd build
@@ -57,8 +62,10 @@ jobs:
             if [ -d "$dir" ]; then
               dir_name=$(basename "$dir")
               zip -r "${dir_name}.zip" "$dir" || { echo "Failed to compress $dir"; exit 1; }
+              echo "Compressed: ${dir_name}.zip"
             fi
           done
+        shell: bash
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
