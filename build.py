@@ -131,8 +131,6 @@ def build_app(app_name, main_file, cuda_version=None):
             logging.info(f"Custom icon for macOS added: {ICON_MACOS}")
         else:
             logging.warning(f"macOS icon file not found at: {ICON_MACOS}")
-    elif sys.platform == "linux":
-        cmd.extend(["--linux-onefile"])
 
     for plugin in NUITKA_PLUGINS:
         cmd.append(f"--enable-plugin={plugin}")
