@@ -142,7 +142,7 @@ def build_app(app_name, main_file, cuda_version=None):
         else:
             logging.warning(f"macOS icon file not found at: {ICON_MACOS}")
     elif sys.platform == "linux":
-        cmd.extend(["--clang"])
+        cmd.extend(["--onefile", "--clang"])
 
     for plugin in NUITKA_PLUGINS:
         cmd.append(f"--enable-plugin={plugin}")
