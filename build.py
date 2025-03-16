@@ -3,6 +3,7 @@ import shutil
 import subprocess
 import logging
 import sys
+import zipfile
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 
@@ -13,7 +14,7 @@ SOURCE_DIRS = {
 
 BUILD_DIR = "build"
 NUITKA_PLUGINS = ["pyside6"]
-CUDA_VERSIONS = ["12.4", "12.6"] if sys.platform != "darwin" else []
+CUDA_VERSIONS = ["12.4"] if sys.platform != "darwin" else []
 
 
 ICON_WINDOWS = "app_icon.ico"  
@@ -149,7 +150,26 @@ def build_app(app_name, main_file, cuda_version=None):
     
     logging.info(f"{app_name}{suffix} built successfully!")
     move_and_cleanup_dist(output_dir)
+    compress_build(output_dir)
 
+def compress_build(output_dir):
+    zip_filename = f"{output_dir}.zip"
+
+    logging.info(f"Compressing {output_dir} to {zip_filename} with maximum compression...")
+
+    if os.path.exists(zip_filename):
+        os.remove(zip_filename)
+
+    with zipfile.ZipFile(zip_filename, 'w', compression=zipfile.ZIP_BZIP2) as zipf:
+        for root, _, files in os.walk(output_dir):
+            for file in files:
+                file_path = os.path.join(root, file)
+                arcname = os.path.relpath(file_path, output_dir)
+                zipf.write(file_path, arcname)
+
+    shutil.rmtree(output_dir)
+    logging.info(f"Compressed successfully: {zip_filename} (Optimized)")
+    
 
 def main():
     if os.path.exists(BUILD_DIR):

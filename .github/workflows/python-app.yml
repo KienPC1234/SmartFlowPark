@@ -46,6 +46,7 @@ jobs:
           elif [ "${{ matrix.os }}" = "macos-latest" ]; then
             brew install ccache
           fi
+        shell: bash
 
       - name: Build Applications
         run: python build.py
@@ -53,18 +54,6 @@ jobs:
       - name: List build contents
         run: |
           ls -la build || dir build
-        shell: bash
-
-      - name: Compress build directories
-        run: |
-          cd build
-          for dir in */; do
-            if [ -d "$dir" ]; then
-              dir_name=$(basename "$dir")
-              zip -r "${dir_name}.zip" "$dir" || { echo "Failed to compress $dir"; exit 1; }
-              echo "Compressed: ${dir_name}.zip"
-            fi
-          done
         shell: bash
 
       - name: Upload artifacts
