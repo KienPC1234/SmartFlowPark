@@ -65,6 +65,9 @@ def build_app(app_name, main_file):
         f"--output-dir={output_dir}",
     ]
 
+    if os.name == "nt":
+        cmd.append("--clang")
+
     for plugin in NUITKA_PLUGINS:
         cmd.append(f"--enable-plugin={plugin}")
 

@@ -1,4 +1,4 @@
-name: Build Python Applications with Nuitka
+name: Build Python Applications
 
 on:
   push:
@@ -26,69 +26,27 @@ jobs:
           cache: 'pip'
           cache-dependency-path: buildv2.txt
 
-      - name: Install base dependencies
+      - name: Install dependencies
         run: |
           pip install -r buildv2.txt
 
+      - name: Build Applications
+        run: |
+          python build.py
 
-      - name: Build Client Application
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: Client/main.py
-          mode: standalone
-          enable-plugins: |
-            pyside6
-          assume-yes-for-downloads: true
-          disable-console: ${{ runner.os == 'Windows' }}
-          output-dir: build/Client App
-          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
-
-      - name: Build Monitoring Unit Application (Basic - macOS)
-        if: matrix.os == 'macos-latest'
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: Monitoring Unit/main.py
-          mode: standalone
-          assume-yes-for-downloads: true
-          output-dir: build/Monitoring Unit App
-
-      - name: Install PyTorch with CUDA 12.4
+      - name: Install PyTorch with CUDA 12.4 (Linux & Windows)
         if: matrix.os != 'macos-latest'
         run: |
           pip uninstall -y torch torchvision torchaudio
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+          python build.py
 
-      - name: Build Monitoring Unit Application (CUDA 12.4)
-        if: matrix.os != 'macos-latest'
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: Monitoring Unit/main.py
-          mode: standalone
-          assume-yes-for-downloads: true
-          disable-console: ${{ runner.os == 'Windows' }}
-          output-dir: build/Monitoring Unit App cu124
-          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
-
-      - name: Install PyTorch with CUDA 12.6
+      - name: Install PyTorch with CUDA 12.6 (Linux & Windows)
         if: matrix.os != 'macos-latest'
         run: |
           pip uninstall -y torch torchvision torchaudio
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
-
-      - name: Build Monitoring Unit Application (CUDA 12.6)
-        if: matrix.os != 'macos-latest'
-        uses: Nuitka/Nuitka-Action@main
-        with:
-          nuitka-version: main
-          script-name: Monitoring Unit/main.py
-          mode: standalone
-          assume-yes-for-downloads: true
-          disable-console: ${{ runner.os == 'Windows' }}
-          output-dir: build/Monitoring Unit App cu126
-          python-flag: ${{ runner.os == 'Windows' && 'clang' || '' }}
+          python build.py
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
@@ -98,29 +56,10 @@ jobs:
             build/Client App/**
           include-hidden-files: true
 
-      - name: Upload Monitoring Unit Artifact (Basic - macOS)
-        if: matrix.os == 'macos-latest'
+      - name: Upload Monitoring Unit Artifact
         uses: actions/upload-artifact@v4
         with:
           name: ${{ matrix.os }}-Monitoring-Unit-App
           path: |
             build/Monitoring Unit App/**
-          include-hidden-files: true
-
-      - name: Upload Monitoring Unit Artifact (CUDA 12.4)
-        if: matrix.os != 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.os }}-Monitoring-Unit-App-cu124
-          path: |
-            build/Monitoring Unit App cu124/**
-          include-hidden-files: true
-
-      - name: Upload Monitoring Unit Artifact (CUDA 12.6)
-        if: matrix.os != 'macos-latest'
-        uses: actions/upload-artifact@v4
-        with:
-          name: ${{ matrix.os }}-Monitoring-Unit-App-cu126
-          path: |
-            build/Monitoring Unit App cu126/**
           include-hidden-files: true
