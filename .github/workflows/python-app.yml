@@ -46,7 +46,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
-          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Build Monitoring Unit Application (Basic - macOS)
         if: matrix.os == 'macos-latest'
@@ -74,7 +74,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu124
-          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Install PyTorch with CUDA 12.6
         if: matrix.os != 'macos-latest'
@@ -92,7 +92,7 @@ jobs:
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Monitoring Unit App cu126
-          extra-flags: ${{ runner.os == 'Windows' && '--mingw' || '' }}
+          python-flag: ${{ runner.os == 'Windows' && '--mingw' || '' }}
 
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
