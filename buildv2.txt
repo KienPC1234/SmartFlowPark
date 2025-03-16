@@ -10,5 +10,4 @@ numpy
 shiboken6
 ultralytics 
 kivy 
-torch 
 opencv-python

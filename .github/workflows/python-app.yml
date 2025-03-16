@@ -15,21 +15,25 @@ jobs:
     runs-on: ${{ matrix.os }}
 
     steps:
+      # Check-out repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Setup Python 3.12
       - name: Setup Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'  
+          python-version: '3.12'
           architecture: 'x64'
           cache: 'pip'
           cache-dependency-path: buildv2.txt
 
-      - name: Install dependencies
+      # Install base dependencies from buildv2.txt
+      - name: Install base dependencies
         run: |
           pip install -r buildv2.txt
 
+      # Build Client Application (không thay đổi)
       - name: Build Client Application
         uses: Nuitka/Nuitka-Action@main
         with:
@@ -44,7 +48,14 @@ jobs:
           disable-console: ${{ runner.os == 'Windows' }}
           output-dir: build/Client App
 
-      - name: Build Monitoring Unit Application
+      # Install PyTorch with CUDA 12.4 for Monitoring Unit (cu124)
+      - name: Install PyTorch with CUDA 12.4
+        run: |
+          pip uninstall -y torch torchvision torchaudio  # Xóa phiên bản cũ nếu có
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu124
+
+      # Build Monitoring Unit Application with CUDA 12.4
+      - name: Build Monitoring Unit Application (CUDA 12.4)
         uses: Nuitka/Nuitka-Action@main
         with:
           nuitka-version: main
@@ -56,8 +67,30 @@ jobs:
             pkg-resources
           assume-yes-for-downloads: true
           disable-console: ${{ runner.os == 'Windows' }}
-          output-dir: build/Monitoring Unit App
+          output-dir: build/Monitoring Unit App cu124
 
+      # Install PyTorch with CUDA 12.6 for Monitoring Unit (cu126)
+      - name: Install PyTorch with CUDA 12.6
+        run: |
+          pip uninstall -y torch torchvision torchaudio  # Xóa phiên bản cu124
+          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu126
+
+      # Build Monitoring Unit Application with CUDA 12.6
+      - name: Build Monitoring Unit Application (CUDA 12.6)
+        uses: Nuitka/Nuitka-Action@main
+        with:
+          nuitka-version: main
+          script-name: Monitoring Unit/main.py
+          mode: standalone
+          enable-plugins: |
+            pyside6
+            multiprocessing
+            pkg-resources
+          assume-yes-for-downloads: true
+          disable-console: ${{ runner.os == 'Windows' }}
+          output-dir: build/Monitoring Unit App cu126
+
+      # Upload Client Artifact
       - name: Upload Client Artifact
         uses: actions/upload-artifact@v4
         with:
@@ -66,10 +99,20 @@ jobs:
             build/Client App/**
           include-hidden-files: true
 
-      - name: Upload Monitoring Unit Artifact
+      # Upload Monitoring Unit Artifact (CUDA 12.4)
+      - name: Upload Monitoring Unit Artifact (CUDA 12.4)
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.os }}-Monitoring-Unit-App
+          name: ${{ matrix.os }}-Monitoring-Unit-App-cu124
           path: |
-            build/Monitoring Unit App/**
+            build/Monitoring Unit App cu124/**
+          include-hidden-files: true
+
+      # Upload Monitoring Unit Artifact (CUDA 12.6)
+      - name: Upload Monitoring Unit Artifact (CUDA 12.6)
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.os }}-Monitoring-Unit-App-cu126
+          path: |
+            build/Monitoring Unit App cu126/**
           include-hidden-files: true
