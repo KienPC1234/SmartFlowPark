@@ -149,7 +149,7 @@ def build_app(app_name, main_file, cuda_version=None):
 
     cmd.append(main_file)
 
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, universal_newlines=True)
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,encoding="utf-8")
     
     for line in process.stdout:
         logging.info(f"Nuitka: {line.strip()}")
