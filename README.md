@@ -36,7 +36,7 @@ All while maintaining the highest standards in security and system performance.
 
 ## Monitoring Unit & Client Setup 💻📱
 
-Both the **Monitoring Unit** and **Client** applications are pre-built and available in the [Releases](https://github.com/KienPC1234/SmartFlowPark/releases) section for multiple operating systems.
+Both the **Monitoring Unit** and **Client** applications are pre-built and available in the [Releases](https://github.com/KienPC1234/SmartFlowPark/releases) section for multiple operating systems. Additionally, you can build them manually using the `build.py` script if your system has **Clang** or **cl-clang** installed.
 
 ### Monitoring Unit
 - **Purpose:**  
@@ -62,8 +62,6 @@ Both the **Monitoring Unit** and **Client** applications are pre-built and avail
   ```
   - **`api_key`:** Replace `"your_google_ai_api_key"` with your actual API key.
   - **`model`:** Set the model you wish to use. This can be the default model or one that you have switched to, as mentioned above.
-
----
 
 ## API Documentation 📡
 
