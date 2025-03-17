@@ -128,7 +128,7 @@ def build_app(app_name, main_file, cuda_version=None):
         logging.warning("Static libpython not available, using --standalone with dynamic linking (requires Python on target machine).")
 
     if sys.platform == "win32":
-        cmd.extend(["--low-memory"])
+        cmd.extend(["--clang"])
         if os.path.exists(ICON_WINDOWS):
             cmd.append(f"--windows-icon-from-ico={ICON_WINDOWS}")
             logging.info(f"Custom icon for Windows added: {ICON_WINDOWS}")
