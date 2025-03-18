@@ -100,11 +100,19 @@ def is_static_libpython_available():
 
 
 def copy_non_excluded_files(source_dir, output_dir):
-    for file in os.listdir(source_dir):
-        file_path = os.path.join(source_dir, file)
-        if os.path.isfile(file_path) and not file.lower().endswith(tuple(EXCLUDED_EXTENSIONS)):
-            shutil.copy2(file_path, os.path.join(output_dir, file))
-            logging.info(f"Copied {file} to {output_dir}")
+    def ignore_excluded_files(dir, names):
+        return [name for name in names 
+                if os.path.isfile(os.path.join(dir, name)) 
+                and name.lower().endswith(tuple(EXCLUDED_EXTENSIONS))]
+
+    def copy_and_log(src, dst):
+        shutil.copy2(src, dst)
+        logging.info(f"Copied {src} to {dst}")
+    
+    shutil.copytree(source_dir, output_dir, 
+                    ignore=ignore_excluded_files, 
+                    copy_function=copy_and_log, 
+                    dirs_exist_ok=True)
 
 def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
     suffix = f" cu{cuda_version}" if cuda_version else ""
@@ -144,13 +152,10 @@ def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
     if extra_imports:
         for item in extra_imports:
             if os.path.isdir(item) or item.endswith(".py"):  
-                # Nếu là thư mục hoặc file Python, coi là data files
                 cmd.append(f"--include-data-files={item}={os.path.basename(item)}")
             elif item.endswith((".yaml", ".json", ".txt")):
-                # Nếu là file config, copy vào build
                 cmd.append(f"--include-data-files={item}={item}")
             else:
-                # Còn lại, giả sử là package Python
                 cmd.append(f"--include-package={item}")
 
     cmd.append(main_file)
@@ -201,7 +206,7 @@ def main():
     create_build_dir()
 
     build_app("Client", SOURCE_DIRS["Client"])
-
+    copy_non_excluded_files("Monitoring Unit","test")
     if not is_github_linux:
         if sys.platform != "darwin":
             for cuda_version in CUDA_VERSIONS:
@@ -212,7 +217,6 @@ def main():
                     cuda_version,
                     extra_imports=[
                         "ultralytics",
-                        "ultralytics/cfg/default.yaml",
                         "lap"
                     ]
                 )
@@ -222,13 +226,12 @@ def main():
                 SOURCE_DIRS["Monitoring Unit"],
                 extra_imports=[
                     "ultralytics",
-                    "ultralytics/cfg/default.yaml",
                     "lap"
                 ]
             )
     else:
         logging.info("Skipping Monitoring Unit build on GitHub Actions (Linux)")
-
+    
     logging.info(f"Build complete! Files output at: {BUILD_DIR}")
 
 if __name__ == "__main__":
