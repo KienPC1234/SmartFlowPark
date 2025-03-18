@@ -12,3 +12,4 @@ ultralytics
 kivy 
 opencv-python
 nuitka
+lap
