@@ -21,7 +21,7 @@ jobs:
           pattern: build-artifacts-*
           path: all-builds
 
-      - name: Debug: Check downloaded artifacts
+      - name: Check downloaded artifacts
         run: ls -la all-builds || dir all-builds
         shell: bash
 
