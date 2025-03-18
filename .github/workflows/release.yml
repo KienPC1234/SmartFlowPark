@@ -18,7 +18,12 @@ jobs:
       - name: Download all artifacts
         uses: actions/download-artifact@v4
         with:
+          pattern: build-artifacts-*
           path: all-builds
+
+      - name: Debug: Check downloaded artifacts
+        run: ls -la all-builds || dir all-builds
+        shell: bash
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
