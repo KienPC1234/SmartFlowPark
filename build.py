@@ -226,7 +226,6 @@ def main():
                 SOURCE_DIRS["Monitoring Unit"],
                 extra_imports=[
                     "ultralytics",
-                    "lap"
                 ]
             )
     else:
