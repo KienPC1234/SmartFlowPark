@@ -186,20 +186,27 @@ def compress_build(output_dir):
     logging.info(f"Compressed successfully: {zip_filename} (Optimized)")
     
 
+is_github_linux = os.getenv("GITHUB_ACTIONS") == "true" and sys.platform == "linux"
+
 def main():
     if os.path.exists(BUILD_DIR):
         shutil.rmtree(BUILD_DIR)
     os.makedirs(BUILD_DIR, exist_ok=True)
     create_build_dir()
+    
     build_app("Client", SOURCE_DIRS["Client"])
-    if sys.platform != "darwin" and sys.platform != "linux":
-        for cuda_version in CUDA_VERSIONS:
-            install_pytorch(cuda_version)
-            build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version)
-    else:
-        build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
-    logging.info(f"Build complete! Files output at: {BUILD_DIR}")
 
+    if not is_github_linux:
+        if sys.platform != "darwin":
+            for cuda_version in CUDA_VERSIONS:
+                install_pytorch(cuda_version)
+                build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version)
+        else:
+            build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
+    else:
+        logging.info("Skipping Monitoring Unit build on GitHub Actions (Linux)")
+
+    logging.info(f"Build complete! Files output at: {BUILD_DIR}")
 
 if __name__ == "__main__":
     main()
