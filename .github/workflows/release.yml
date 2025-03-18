@@ -12,11 +12,23 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Download latest artifact
+      - name: Download Ubuntu artifact
         uses: actions/download-artifact@v4
         with:
-          name: my-artifact
-          path: ./artifact
+          name: build-artifacts-ubuntu-latest
+          path: ./artifact/ubuntu
+
+      - name: Download Windows artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-windows-latest
+          path: ./artifact/windows
+
+      - name: Download macOS artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: build-artifacts-macos-latest
+          path: ./artifact/macos
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -25,4 +37,7 @@ jobs:
           name: Release ${{ github.ref_name }}
           draft: false
           prerelease: false
-          files: ./artifact/*
+          files: |
+            ./artifact/ubuntu/*
+            ./artifact/windows/*
+            ./artifact/macos/*
