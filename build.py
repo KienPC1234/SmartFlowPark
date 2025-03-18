@@ -118,22 +118,22 @@ def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
         "--assume-yes-for-downloads",
         "--remove-output",
         f"--output-dir={output_dir}",
+        "--standalone"
     ]
 
     if is_static_libpython_available():
-        cmd.extend(["--standalone", "--static-libpython=yes"])
+        cmd.append("--static-libpython=yes")
         logging.info("Using --standalone with static libpython for fully standalone executable.")
     else:
-        cmd.append("--standalone")
         logging.warning("Static libpython not available, using --standalone with dynamic linking (requires Python on target machine).")
 
     if sys.platform == "win32":
-        cmd.extend(["--clang"])
+        cmd.append("--clang")
         if os.path.exists(ICON_WINDOWS):
             cmd.append(f"--windows-icon-from-ico={ICON_WINDOWS}")
             logging.info(f"Custom icon for Windows added: {ICON_WINDOWS}")
     elif sys.platform == "darwin":
-        cmd.extend(["--macos-create-app-bundle"])
+        cmd.append("--macos-create-app-bundle")
         if os.path.exists(ICON_MACOS):
             cmd.append(f"--macos-app-icon={ICON_MACOS}")
             logging.info(f"Custom icon for macOS added: {ICON_MACOS}")
@@ -143,15 +143,20 @@ def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
 
     if extra_imports:
         for item in extra_imports:
-            if os.path.isdir(item) or item.endswith(".py"):
+            if os.path.isdir(item) or item.endswith(".py"):  
+                # Nếu là thư mục hoặc file Python, coi là data files
                 cmd.append(f"--include-data-files={item}={os.path.basename(item)}")
+            elif item.endswith((".yaml", ".json", ".txt")):
+                # Nếu là file config, copy vào build
+                cmd.append(f"--include-data-files={item}={item}")
             else:
+                # Còn lại, giả sử là package Python
                 cmd.append(f"--include-package={item}")
 
     cmd.append(main_file)
 
     process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
-    
+
     for line in process.stdout:
         logging.info(f"Nuitka: {line.strip()}")
 
@@ -159,7 +164,7 @@ def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
     if process.returncode != 0:
         logging.error(f"Error building {app_name}{suffix}: Check Nuitka output above for details.")
         raise subprocess.CalledProcessError(process.returncode, cmd)
-    
+
     logging.info(f"{app_name}{suffix} built successfully!")
     move_and_cleanup_dist(output_dir)
 
@@ -194,24 +199,33 @@ def main():
         shutil.rmtree(BUILD_DIR)
     os.makedirs(BUILD_DIR, exist_ok=True)
     create_build_dir()
-    
+
     build_app("Client", SOURCE_DIRS["Client"])
 
     if not is_github_linux:
         if sys.platform != "darwin":
             for cuda_version in CUDA_VERSIONS:
                 install_pytorch(cuda_version)
-                build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version,extra_imports=[
-                    "ultralytics",
-                    "ultralytics/cfg/default.yaml",  
-                    "lap" 
-                ])
+                build_app(
+                    "Monitoring Unit",
+                    SOURCE_DIRS["Monitoring Unit"],
+                    cuda_version,
+                    extra_imports=[
+                        "ultralytics",
+                        "ultralytics/cfg/default.yaml",
+                        "lap"
+                    ]
+                )
         else:
-            build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"],extra_imports=[
+            build_app(
+                "Monitoring Unit",
+                SOURCE_DIRS["Monitoring Unit"],
+                extra_imports=[
                     "ultralytics",
-                    "ultralytics/cfg/default.yaml",  
-                    "lap" 
-                ])
+                    "ultralytics/cfg/default.yaml",
+                    "lap"
+                ]
+            )
     else:
         logging.info("Skipping Monitoring Unit build on GitHub Actions (Linux)")
 
