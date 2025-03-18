@@ -137,6 +137,7 @@ def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
 
     if sys.platform == "win32":
         cmd.append("--clang")
+        cmd.append("--windows-console-mode=disable")
         if os.path.exists(ICON_WINDOWS):
             cmd.append(f"--windows-icon-from-ico={ICON_WINDOWS}")
             logging.info(f"Custom icon for Windows added: {ICON_WINDOWS}")
@@ -206,7 +207,6 @@ def main():
     create_build_dir()
 
     build_app("Client", SOURCE_DIRS["Client"])
-    copy_non_excluded_files("Monitoring Unit","test")
     if not is_github_linux:
         if sys.platform != "darwin":
             for cuda_version in CUDA_VERSIONS:
