@@ -106,7 +106,7 @@ def copy_non_excluded_files(source_dir, output_dir):
             shutil.copy2(file_path, os.path.join(output_dir, file))
             logging.info(f"Copied {file} to {output_dir}")
 
-def build_app(app_name, main_file, cuda_version=None):
+def build_app(app_name, main_file, cuda_version=None, extra_imports=None):
     suffix = f" cu{cuda_version}" if cuda_version else ""
     output_dir = os.path.join(BUILD_DIR, f"{app_name} App{suffix}")
     os.makedirs(output_dir, exist_ok=True)
@@ -132,24 +132,25 @@ def build_app(app_name, main_file, cuda_version=None):
         if os.path.exists(ICON_WINDOWS):
             cmd.append(f"--windows-icon-from-ico={ICON_WINDOWS}")
             logging.info(f"Custom icon for Windows added: {ICON_WINDOWS}")
-        else:
-            logging.warning(f"Windows icon file not found at: {ICON_WINDOWS}")
     elif sys.platform == "darwin":
         cmd.extend(["--macos-create-app-bundle"])
         if os.path.exists(ICON_MACOS):
             cmd.append(f"--macos-app-icon={ICON_MACOS}")
             logging.info(f"Custom icon for macOS added: {ICON_MACOS}")
-        else:
-            logging.warning(f"macOS icon file not found at: {ICON_MACOS}")
-    elif sys.platform == "linux":
-        cmd.extend(["--onefile", "--clang"])
 
     for plugin in NUITKA_PLUGINS:
         cmd.append(f"--enable-plugin={plugin}")
 
+    if extra_imports:
+        for item in extra_imports:
+            if os.path.isdir(item) or item.endswith(".py"):
+                cmd.append(f"--include-data-files={item}={os.path.basename(item)}")
+            else:
+                cmd.append(f"--include-package={item}")
+
     cmd.append(main_file)
 
-    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,encoding="utf-8")
+    process = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True, encoding="utf-8")
     
     for line in process.stdout:
         logging.info(f"Nuitka: {line.strip()}")
@@ -200,9 +201,17 @@ def main():
         if sys.platform != "darwin":
             for cuda_version in CUDA_VERSIONS:
                 install_pytorch(cuda_version)
-                build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version)
+                build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"], cuda_version,extra_imports=[
+                    "ultralytics",
+                    "ultralytics/cfg/default.yaml",  
+                    "lap" 
+                ])
         else:
-            build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"])
+            build_app("Monitoring Unit", SOURCE_DIRS["Monitoring Unit"],extra_imports=[
+                    "ultralytics",
+                    "ultralytics/cfg/default.yaml",  
+                    "lap" 
+                ])
     else:
         logging.info("Skipping Monitoring Unit build on GitHub Actions (Linux)")
 
